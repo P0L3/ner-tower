@@ -132,10 +132,11 @@ Example:
 
 ## 🗺️ Roadmap (Simplified)
 
-* [ ] Core player movement & physics
-* [ ] JSON upload + parsing
-* [ ] Entity rendering system
-* [ ] Difficulty scaling
-* [ ] UI polish
+1. **Asset Structure:** Create a `public/assets/player/` folder and prepare transparent PNG layers (e.g., `body.png`, `eyes_4.png`, `hair_5.png`) so the game can stack them like paper dolls.
+2. **Data Mapping:** Update the JSON loading logic in the `MainMenuScene` to extract the `annotator_id` (or use the filename as a proxy) and pass it into the `GameScene` via the `init()` data.
+3. **Player Refactor:** In the `GameScene`, replace the `Phaser.GameObjects.Rectangle` player with a `Phaser.GameObjects.Container` that dynamically loads and displays the specific sprite layers tied to that ID.
+
+**Pro-tip for tomorrow:** Add `public/assets/player/*` to your `.gitignore` file now. That way, you can keep the default BERT on GitHub but your annotators' "Easter Egg" sprites will stay strictly on your local machine.
+
 
 ---
