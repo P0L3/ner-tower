@@ -61,7 +61,11 @@ class GameScene extends Phaser.Scene {
     private dataset!: SentenceData[];
     private entityStats!: EntityStats[];
     
-    private player!: Phaser.GameObjects.Rectangle;
+    // Inside GameScene, replace `private player!: Phaser.GameObjects.Rectangle;` with:
+    private player!: Phaser.GameObjects.Container;
+    private playerVisual!: Phaser.GameObjects.Rectangle;
+    private dustEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+    private trailEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private platforms!: Phaser.Physics.Arcade.StaticGroup;
     private entityTextGroup!: Phaser.GameObjects.Group;
@@ -112,7 +116,7 @@ class GameScene extends Phaser.Scene {
     create() {
         this.physics.world.setBounds(0, -500000, 600, 502000); 
         this.cameras.main.setBounds(0, -500000, 850, 502000);
-        this.cameras.main.scrollY = this.cameraY; // Start at the bottom
+        this.cameras.main.scrollY = this.cameraY;
 
         this.platforms = this.physics.add.staticGroup();
         this.entityTextGroup = this.add.group();
@@ -124,8 +128,44 @@ class GameScene extends Phaser.Scene {
         this.generateTowerChunk(20);
         this.buildSideHUD();
 
-        this.player = this.add.rectangle(300, this.startY, 30, 30, 0x00aaff);
+        // --- NEW: Generate a simple 8x8 white square texture for particles ---
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0xffffff, 1);
+        graphics.fillRect(0, 0, 8, 8);
+        graphics.generateTexture('dust', 8, 8);
+        graphics.destroy();
+
+        // --- NEW: Create Particle Emitters ---
+        this.dustEmitter = this.add.particles(0, 0, 'dust', {
+            emitting: false,
+            lifespan: 400,
+            speed: { min: 50, max: 150 },
+            angle: { min: 180, max: 360 }, // Burst upwards
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.6, end: 0 },
+            gravityY: 400
+        });
+        this.dustEmitter.setDepth(15);
+
+        this.trailEmitter = this.add.particles(0, 0, 'dust', {
+            emitting: false,
+            lifespan: 300,
+            speed: 20,
+            scale: { start: 1.5, end: 0 },
+            alpha: { start: 0.5, end: 0 },
+            tint: [0xff00ff, 0x00ffff, 0xffff00], // Cyberpunk/Super-jump colors
+            blendMode: 'ADD'
+        });
+        this.trailEmitter.setDepth(9); // Right behind the player
+
+        // --- NEW: Container Player Setup ---
+        this.playerVisual = this.add.rectangle(0, 0, 30, 30, 0x00aaff);
+        this.player = this.add.container(300, this.startY, [this.playerVisual]);
+        this.player.setSize(30, 30); // Define the physics hitbox size
         this.player.setDepth(10);
+        
+        this.trailEmitter.startFollow(this.player, 0, 15); // Attach trail to bottom of player
+        
         this.physics.add.existing(this.player);
         
         const body = this.player.body as Phaser.Physics.Arcade.Body;
@@ -135,9 +175,24 @@ class GameScene extends Phaser.Scene {
         body.setDragX(1000); 
 
         this.physics.add.collider(this.player, this.platforms, undefined, (player, platform: any) => {
+            // --- NEW: Animated Platform Reveal ---
             if (platform.nerLabel && !platform.isRevealed) {
                 platform.isRevealed = true;
-                platform.setFillStyle(this.colorMap.get(platform.nerLabel));
+                const targetColor = this.colorMap.get(platform.nerLabel);
+                
+                // Flash white and bounce scale
+                platform.setFillStyle(0xffffff);
+                this.tweens.add({
+                    targets: platform,
+                    scaleX: 1.1,
+                    scaleY: 1.1,
+                    duration: 150,
+                    yoyo: true,
+                    ease: 'Quad.easeOut',
+                    onComplete: () => {
+                        platform.setFillStyle(targetColor);
+                    }
+                });
             }
             if (platform.nerLabel && this.unstableLabels.has(platform.nerLabel)) return false;
             return true; 
@@ -226,15 +281,42 @@ class GameScene extends Phaser.Scene {
 
         if (this.comboTimer > 0) {
             this.comboTimer -= delta;
-            if (this.comboTimer <= 0) { this.comboCount = 0; this.comboText.setText(''); this.player.setFillStyle(0x00aaff); }
+            if (this.comboTimer <= 0) { 
+                this.comboCount = 0; 
+                this.comboText.setText(''); 
+                this.playerVisual.setFillStyle(0x00aaff); // Fix: use playerVisual
+                this.trailEmitter.emitting = false;       // Turn off trail
+            }
         }
 
         if (body.touching.down && !this.wasTouchingDown) {
-            this.player.rotation = 0;
+            this.playerVisual.rotation = 0; // Fix: use playerVisual
+            
+            // --- NEW: Landing Juice ---
+            this.dustEmitter.emitParticleAt(this.player.x, this.player.y + 15, 10);
+            this.tweens.killTweensOf(this.playerVisual); // Stop previous tweens
+            this.playerVisual.setScale(1);
+            this.tweens.add({
+                targets: this.playerVisual,
+                scaleX: 1.4,
+                scaleY: 0.6,
+                duration: 120,
+                yoyo: true,
+                ease: 'Sine.easeOut'
+            });
+
             if (this.player.y < this.lastPlatformY - 10) {
                 this.comboCount++; this.comboTimer = 1500; this.lastPlatformY = this.player.y;
-                if (this.comboCount >= 5) { this.comboText.setText(`COMBO: ${this.comboCount}\nSUPER JUMP!`); this.comboText.setColor('#ff00ff'); this.player.setFillStyle(0xff00ff); }
-                else { this.comboText.setText(`COMBO: ${this.comboCount}`); this.comboText.setColor('#ffff00'); }
+                if (this.comboCount >= 5) { 
+                    this.comboText.setText(`COMBO: ${this.comboCount}\nSUPER JUMP!`); 
+                    this.comboText.setColor('#ff00ff'); 
+                    this.playerVisual.setFillStyle(0xff00ff); // Fix: use playerVisual
+                    this.trailEmitter.emitting = true;        // Turn on trail
+                }
+                else { 
+                    this.comboText.setText(`COMBO: ${this.comboCount}`); 
+                    this.comboText.setColor('#ffff00'); 
+                }
             }
         }
 
@@ -243,9 +325,25 @@ class GameScene extends Phaser.Scene {
             let jf = -650 - (200 * (Math.abs(body.velocity.x)/500));
             if (this.comboCount >= 5) jf -= 300;
             body.setVelocityY(jf);
+
+            // --- NEW: Jumping Juice ---
+            this.dustEmitter.emitParticleAt(this.player.x, this.player.y + 15, 8);
+            this.tweens.killTweensOf(this.playerVisual);
+            this.playerVisual.setScale(1);
+            this.tweens.add({
+                targets: this.playerVisual,
+                scaleX: 0.8,
+                scaleY: 1.2,
+                duration: 100,
+                yoyo: true,
+                ease: 'Quad.easeOut'
+            });
         }
 
-        if (!body.touching.down && this.comboCount >= 5) this.player.rotation += (body.velocity.x > 0 ? 0.15 : -0.15);
+        if (!body.touching.down && this.comboCount >= 5) {
+            this.playerVisual.rotation += (body.velocity.x > 0 ? 0.15 : -0.15); // Fix: use playerVisual
+        }
+        
         this.wasTouchingDown = body.touching.down;
 
         if (this.hasStarted) {
