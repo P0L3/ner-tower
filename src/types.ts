@@ -1,4 +1,5 @@
 // types.ts
+
 export interface EntitySpan {
     0: number; // token_span_start
     1: number; // token_span_end
@@ -18,4 +19,13 @@ export interface EntityStats {
     frequency: number;
     avgLength: number;
     hardnessScore: number;
+}
+
+// Global run settings
+export interface GameSettings {
+    datasetHash: string;
+    seed: number;
+    baseSpeed: number;
+    speedInc: number;
+    phaseDist: number;
 }
