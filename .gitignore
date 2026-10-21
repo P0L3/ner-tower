@@ -44,3 +44,6 @@ DATA_EXAMPLES/
 # Coverage (future)
 
 coverage/
+
+# Codebase Bundle
+nertower.txt
