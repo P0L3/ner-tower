@@ -78,19 +78,19 @@ worker/                    # Cloudflare Worker + D1 schema
 **Performance**
 - [x] Pure `layout.ts`: fixed ruleset metrics (not measured from the font, which differs per OS); no measurer Text objects
 - [x] `TowerPlanner` (pure placement: seeded sentence pick + stacking) wired into `GameScene`
-- [ ] Reduce texture cost: one rendered object per sentence (single canvas/Text/RenderTexture) or BitmapText, instead of one Text per token
-- [ ] Platforms as lightweight static bodies (no per-token Rectangle game objects if avoidable)
-- [ ] Frame-budgeted generation: create 1–2 sentences per frame from a queue, larger lookahead so the player never outruns the tower
-- [ ] Culling/recycling of sentences far below the camera (also removes them from the physics group)
+- [x] Reduce texture cost: one canvas texture per sentence (`SentenceView`), instead of one Text per token
+- [x] Platforms as invisible static zones; reveal flash is a short-lived overlay (`SentenceView.reveal`)
+- [x] Frame-budgeted generation (`TowerStreamer`: 3 ms budget, 1200 px lookahead, always >= 1 sentence if needed)
+- [x] Culling of sentences below the camera (frees canvas texture, zones and static bodies)
 - [x] Keep a single RNG stream for tower generation, consumed strictly in sequence (determinism must not depend on timing; tested with batched generation)
-- [ ] Measure: no frame >~25 ms during generation on a mid-range laptop; flat memory over a 10+ minute run
+- [ ] Measure in browser: no visible hitch while climbing; flat memory over a 10+ minute run (needs your eyes; DevTools Performance/Memory)
 
 **Rules-affecting fixes 🔒**
 - [x] 🔒 Filter sentences with zero valid entities at load time (`filterPlayable`, order-preserving)
 - [x] 🔒 Over-long tokens are truncated with an ellipsis to fit one line; invalid spans are ignored (not clamped)
 - [ ] 🔒 Fix phase skipping when height crosses several thresholds at once
 - [ ] 🔒 Reachability guarantee: a valid (stable-label) path must exist within max jump reach at every height
-- [ ] 🔒 Collect all physics/generation constants into `config/ruleset.ts`
+- [x] 🔒 Collect all physics/generation constants into `config/ruleset.ts` (`PHYSICS`, `COMBO`, `CAMERA`, `LAYOUT`, `TOWER`)
 
 ### M2 — Ruleset v1 freeze 🔒
 - [x] Create tiny synthetic fixture dataset (`src/data/fixtures/sample.ts`, original content, safe to ship)

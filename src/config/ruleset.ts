@@ -28,3 +28,39 @@ export const TOWER = {
     firstBottomY: 1800, // bottom edge of the first sentence
     sentenceGap: 120,   // vertical gap between consecutive sentences
 } as const;
+
+/** Physics and movement. Jump heights etc. decide which platforms are reachable. */
+export const PHYSICS = {
+    gravityY: 1200,
+    worldWidth: 600,            // playable width; the HUD occupies x >= 600
+    worldTop: -500000,
+    worldHeight: 502000,
+    playerSize: 30,
+    playerStartX: 300,
+    playerStartY: 1900,
+    groundY: 1980,
+    groundHeight: 40,
+    maxVelocityX: 500,
+    maxVelocityY: 1500,
+    dragX: 1000,
+    accelX: 1500,
+    bounceX: 0.8,
+    bounceY: 0,
+    jumpVelocity: -650,
+    jumpSpeedBonus: 200,        // extra jump velocity at full horizontal speed
+    superJumpBonus: 300,        // extra jump velocity while the combo is active
+} as const;
+
+export const COMBO = {
+    superJumpAt: 5,             // combo count that enables super jumps
+    windowMs: 1500,             // time to land the next higher platform
+    minRise: 10,                // a landing must be this much higher to count
+} as const;
+
+export const CAMERA = {
+    startScrollY: 1200,
+    followOffsetY: 400,         // camera keeps the player this far below the top edge
+} as const;
+
+/** Score: 1 height unit per this many pixels climbed. */
+export const HEIGHT_UNIT_PX = 10;
