@@ -5,6 +5,7 @@ import { hashString } from '../../core/hash';
 import { resumeAudio } from '../../core/audio';
 import { parseCoNLL } from '../../data/formats/conll';
 import { profileEntities } from '../../data/profile';
+import { filterPlayable } from '../../data/playable';
 
 export class MainMenuScene extends Phaser.Scene {
     private promptText!: Phaser.GameObjects.Text;
@@ -121,7 +122,15 @@ export class MainMenuScene extends Phaser.Scene {
                 }
             }
 
-            // 2. Hash dataset & Read settings
+            // 2. Keep only sentences the game can use (ruleset rule: needs >= 1 valid entity)
+            const playable = filterPlayable(dataset);
+            if (playable.length === 0) {
+                this.showError('Error: No sentence with a valid entity found.');
+                return;
+            }
+            dataset = playable;
+
+            // 3. Hash dataset & Read settings
             const fileHash = hashString(rawContent);
             const seedInput = (document.getElementById('ner-seed') as HTMLInputElement).value.trim();
 
@@ -133,7 +142,7 @@ export class MainMenuScene extends Phaser.Scene {
                 phaseDist: parseFloat((document.getElementById('ner-phase') as HTMLInputElement).value)
             };
 
-            // 3. Override if Seed pasted
+            // 4. Override if Seed pasted
             if (seedInput) {
                 try {
                     const decoded = atob(seedInput);
@@ -152,7 +161,7 @@ export class MainMenuScene extends Phaser.Scene {
                 }
             }
 
-            // 4. Cleanup UI and start
+            // 5. Cleanup UI and start
             const uiContainer = document.getElementById('ner-ui-container');
             if (uiContainer) uiContainer.style.display = 'none';
 

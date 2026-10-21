@@ -72,27 +72,29 @@ worker/                    # Cloudflare Worker + D1 schema
 - [x] Verify `npm run build` still produces a working single file
 - [x] Extra: pure helpers extracted (`parseCoNLL`, `profileEntities`) and covered by first unit tests (rng, hash, conll, profile)
 - [x] Extra: fixed pre-existing `tsc` error (`update(time, …)` unused param) that broke `npm run build`
-- [x] Manual browser smoke test: load file → play → game over → `R` / `N` (needs your eyes)
+- [ ] Manual browser smoke test: load file → play → game over → `R` / `N` (needs your eyes)
 
 ### M1 — Fix the freeze (#3) + generation-changing fixes 🔒
 **Performance**
-- [ ] Pure `layout.ts`: compute token positions with monospace metrics (measure one glyph once; no measurer Text objects)
+- [x] Pure `layout.ts`: fixed ruleset metrics (not measured from the font, which differs per OS); no measurer Text objects
+- [x] `TowerPlanner` (pure placement: seeded sentence pick + stacking) wired into `GameScene`
 - [ ] Reduce texture cost: one rendered object per sentence (single canvas/Text/RenderTexture) or BitmapText, instead of one Text per token
 - [ ] Platforms as lightweight static bodies (no per-token Rectangle game objects if avoidable)
 - [ ] Frame-budgeted generation: create 1–2 sentences per frame from a queue, larger lookahead so the player never outruns the tower
 - [ ] Culling/recycling of sentences far below the camera (also removes them from the physics group)
-- [ ] Keep a single RNG stream for tower generation, consumed strictly in sequence (determinism must not depend on timing)
+- [x] Keep a single RNG stream for tower generation, consumed strictly in sequence (determinism must not depend on timing; tested with batched generation)
 - [ ] Measure: no frame >~25 ms during generation on a mid-range laptop; flat memory over a 10+ minute run
 
 **Rules-affecting fixes 🔒**
-- [ ] 🔒 Filter sentences with zero entities at load time (deterministic)
+- [x] 🔒 Filter sentences with zero valid entities at load time (`filterPlayable`, order-preserving)
+- [x] 🔒 Over-long tokens are truncated with an ellipsis to fit one line; invalid spans are ignored (not clamped)
 - [ ] 🔒 Fix phase skipping when height crosses several thresholds at once
 - [ ] 🔒 Reachability guarantee: a valid (stable-label) path must exist within max jump reach at every height
 - [ ] 🔒 Collect all physics/generation constants into `config/ruleset.ts`
 
 ### M2 — Ruleset v1 freeze 🔒
-- [ ] Create tiny synthetic fixture dataset (original content, safe to ship)
-- [ ] Golden test: seed + fixture → sentence-ID sequence + layout hash
+- [x] Create tiny synthetic fixture dataset (`src/data/fixtures/sample.ts`, original content, safe to ship)
+- [x] Golden test: seed + fixture → sentence-ID sequence + layout hash (exists; constants may still be refreshed until the freeze)
 - [ ] Reachability property test over many seeds
 - [ ] Set `RULESET_VERSION = 1`; document the "bump on change" rule in the contributor guide
 

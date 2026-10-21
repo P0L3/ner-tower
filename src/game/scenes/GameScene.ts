@@ -1,15 +1,16 @@
 import * as Phaser from 'phaser';
-import type { SentenceData, EntityStats, EntitySpan } from '../../data/types';
+import type { SentenceData, EntityStats } from '../../data/types';
 import type { GameSettings } from '../../config/settings';
 import { seededRandom } from '../../core/rng';
 import { zzfx, sndJump, sndLand, sndCombo, sndPhase, sndOver } from '../../core/audio';
 import { buildColorMap } from '../palette';
+import { TowerPlanner, type PlacedSentence } from '../tower';
 
 export class GameScene extends Phaser.Scene {
     private dataset!: SentenceData[];
     private entityStats!: EntityStats[];
     private settings!: GameSettings;
-    private rng!: () => number;
+    private planner!: TowerPlanner;
 
     private player!: Phaser.GameObjects.Container;
     private playerVisual!: Phaser.GameObjects.Rectangle;
@@ -28,7 +29,6 @@ export class GameScene extends Phaser.Scene {
     private unstableLabels = new Set<string>();
     private startY = 1900;
     private maxHeightReached = 0;
-    private highestGeneratedY = 1800;
     private cameraY = 1200;
     private scrollSpeed = 0.5;
 
@@ -44,13 +44,12 @@ export class GameScene extends Phaser.Scene {
         this.dataset = data.dataset;
         this.entityStats = data.entityStats;
         this.settings = data.settings;
-        this.rng = seededRandom(this.settings.seed);
+        this.planner = new TowerPlanner(this.dataset, seededRandom(this.settings.seed));
 
         this.hasStarted = false;
         this.currentPhase = 0;
         this.unstableLabels.clear();
         this.maxHeightReached = 0;
-        this.highestGeneratedY = 1800;
         this.cameraY = 1200;
         this.scrollSpeed = this.settings.baseSpeed; // Load from settings
         this.comboCount = 0;
@@ -144,50 +143,28 @@ export class GameScene extends Phaser.Scene {
     }
 
     private generateTowerChunk(count: number) {
-        for (let i = 0; i < count; i++) {
-            // Replaced Math.random() with seeded this.rng()
-            const sentence = this.dataset[Math.floor(this.rng() * this.dataset.length)];
-            const h = this.buildSentenceBlocks(sentence, this.highestGeneratedY);
-            this.highestGeneratedY -= (h + 120);
-        }
+        for (let i = 0; i < count; i++) this.renderSentence(this.planner.next());
     }
 
-    private buildSentenceBlocks(sentence: SentenceData, bottomY: number): number {
-        const marginX = 30, lineSpacing = 35;
-        let currentX = marginX, lines = 0;
-        const measurer = this.add.text(-1000, -1000, '', { fontSize: '18px', fontFamily: 'monospace' });
-        interface LayoutItem { token: string; x: number; y: number; width: number; height: number; entitySpan?: EntitySpan; }
-        const layout: LayoutItem[] = [];
-
-        for (let i = 0; i < sentence.tokenized_text.length; i++) {
-            const token = sentence.tokenized_text[i];
-            measurer.setText(token);
-            if (currentX + measurer.width > 570) { currentX = marginX; lines++; }
-            const span = sentence.ner.find(s => i >= s[0] && i <= s[1]);
-            layout.push({ token, x: currentX, y: lines * lineSpacing, width: measurer.width, height: measurer.height, entitySpan: span });
-            currentX += measurer.width + 6;
-        }
-        measurer.destroy();
-        const h = (lines + 1) * lineSpacing;
-        const startY = bottomY - h;
-
-        for (const item of layout) {
-            const dx = item.x, dy = startY + item.y;
-            if (item.entitySpan) {
-                const label = item.entitySpan[2];
-                const txt = this.add.text(dx, dy, item.token, { fontSize: '18px', fontFamily: 'monospace', color: '#ffffff' }).setDepth(2);
+    /** Turns a planned sentence (pure data) into Phaser objects. */
+    private renderSentence(placed: PlacedSentence) {
+        for (const t of placed.layout.tokens) {
+            const dx = t.x, dy = placed.topY + t.y;
+            if (t.label !== undefined && t.platform) {
+                const label = t.label;
+                const txt = this.add.text(dx, dy, t.text, { fontSize: '18px', fontFamily: 'monospace', color: '#ffffff' }).setDepth(2);
                 (txt as any).nerLabel = label; this.entityTextGroup.add(txt);
-                const plat = this.add.rectangle(dx + (item.width/2), dy + (item.height/2), item.width + 8, item.height + 8, 0x666666).setDepth(1);
+                const p = t.platform;
+                const plat = this.add.rectangle(p.x + p.w / 2, placed.topY + p.y + p.h / 2, p.w, p.h, 0x666666).setDepth(1);
                 (plat as any).nerLabel = label; (plat as any).isRevealed = false;
                 if (this.unstableLabels.has(label)) { plat.setAlpha(0.3); txt.setAlpha(0.3); }
                 this.platforms.add(plat);
                 const body = plat.body as Phaser.Physics.Arcade.Body;
                 body.checkCollision.down = false; body.checkCollision.left = false; body.checkCollision.right = false;
             } else {
-                this.add.text(dx, dy, item.token, { fontSize: '18px', fontFamily: 'monospace', color: '#444444' }).setDepth(0);
+                this.add.text(dx, dy, t.text, { fontSize: '18px', fontFamily: 'monospace', color: '#444444' }).setDepth(0);
             }
         }
-        return h;
     }
 
     update(_time: number, delta: number) {
@@ -266,7 +243,7 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        if (this.player.y < this.highestGeneratedY + 1000) this.generateTowerChunk(20);
+        if (this.player.y < this.planner.nextBottomY + 1000) this.generateTowerChunk(20);
 
         const currentHeight = Math.floor((this.startY - this.player.y) / 10);
         if (currentHeight > this.maxHeightReached) {
