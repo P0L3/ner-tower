@@ -9,6 +9,11 @@ export interface SentenceData {
     text: string;
     tokenized_text: string[];
     ner: EntitySpan[];
+    /**
+     * Optional source-specific payload (e.g. `sourceId`, annotator id). Never hashed and never
+     * read by the tower generator, so it cannot change what a seed produces.
+     */
+    meta?: Record<string, unknown>;
 }
 
 /** Profiler output, one entry per entity label. */

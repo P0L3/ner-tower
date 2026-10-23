@@ -6,11 +6,13 @@
  *
  * Builds towers with the real generator, pinned to each phase in turn, and reports how
  * climbable they are (`--sentences` placements per phase).
- * Accepts the same formats as the in-game drag & drop (JSON array of sentences, or CoNLL).
+ * Accepts the same formats as the in-game drag & drop (JSON array, JSONL or CoNLL) and runs the same
+ * canonicalization, so it analyzes exactly the dataset the game would play.
  */
 import { readFileSync } from 'node:fs';
 import { seededRandom } from '../src/core/rng';
-import { parseCoNLL } from '../src/data/formats/conll';
+import { loadDatasetText } from '../src/data/load';
+import { DatasetParseError } from '../src/data/formats/index';
 import { filterPlayable, isValidSpan } from '../src/data/playable';
 import { profileEntities } from '../src/data/profile';
 import { makeSyntheticDataset } from '../src/data/fixtures/synthetic';
@@ -27,19 +29,22 @@ const file = args.find((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].s
 const seed = flag('--seed', 1);
 const count = flag('--sentences', 500);
 
-function load(): SentenceData[] {
-    if (args.includes('--synthetic')) return makeSyntheticDataset(4000, 27, 7);
-    if (!file) { console.error('Usage: npm run analyze -- <file.json|file.txt> [--seed N] [--sentences N]  |  --synthetic'); process.exit(1); }
-    const raw = readFileSync(file, 'utf8');
+function load(): { rows: number; dataset: SentenceData[] } {
+    if (args.includes('--synthetic')) {
+        const all = makeSyntheticDataset(4000, 27, 7);
+        return { rows: all.length, dataset: filterPlayable(all) };
+    }
+    if (!file) { console.error('Usage: npm run analyze -- <file.json|file.jsonl|file.txt> [--seed N] [--sentences N]  |  --synthetic'); process.exit(1); }
     try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-    } catch { /* fall through to CoNLL */ }
-    return parseCoNLL(raw);
+        const { canonical } = loadDatasetText(readFileSync(file, 'utf8')); // same pipeline as drag & drop
+        return { rows: canonical.report.rows, dataset: canonical.sentences };
+    } catch (err) {
+        console.error(err instanceof DatasetParseError ? err.message : err);
+        process.exit(1);
+    }
 }
 
-const all = load();
-const dataset = filterPlayable(all);
+const { rows, dataset } = load();
 if (dataset.length === 0) { console.error('No playable sentences (need at least one valid entity span).'); process.exit(1); }
 
 const stats = profileEntities(dataset);
@@ -47,7 +52,7 @@ const order = stats.map(s => s.label);
 const lastLabel = order[order.length - 1];
 const withLast = dataset.filter(s => s.ner.some(sp => isValidSpan(sp, s.tokenized_text.length) && sp[2] === lastLabel)).length;
 
-console.log(`Sentences: ${all.length} loaded, ${dataset.length} playable (${all.length - dataset.length} dropped: no valid entity)`);
+console.log(`Sentences: ${rows} loaded, ${dataset.length} playable (${rows - dataset.length} dropped: malformed, no valid entity or duplicate)`);
 console.log(`Labels: ${order.length}. Turn unstable first -> last: ${order.slice(0, 4).join(', ')}${order.length > 4 ? ', ...' : ''}`);
 console.log(`Never unstable: "${lastLabel}" (in ${withLast} sentences = ${(100 * withLast / dataset.length).toFixed(1)}%)`);
 console.log(`Reach rule: rise <= ${REACH.maxRise}px (running apex ${REACH.runningApex.toFixed(0)}px), gap ${REACH.minGap}-${TOWER.sentenceGap}px, seed ${seed}, ${count} placements per phase\n`);

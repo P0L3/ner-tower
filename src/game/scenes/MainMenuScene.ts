@@ -1,11 +1,10 @@
 import * as Phaser from 'phaser';
 import type { SentenceData } from '../../data/types';
 import type { GameSettings } from '../../config/settings';
-import { hashString } from '../../core/hash';
 import { resumeAudio } from '../../core/audio';
-import { parseCoNLL } from '../../data/formats/conll';
 import { profileEntities } from '../../data/profile';
-import { filterPlayable } from '../../data/playable';
+import { loadDatasetText } from '../../data/load';
+import { DatasetParseError } from '../../data/formats/index';
 
 export class MainMenuScene extends Phaser.Scene {
     private promptText!: Phaser.GameObjects.Text;
@@ -14,7 +13,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     create() {
         this.add.text(425, 120, 'NER TOWER', { fontSize: '48px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
-        this.promptText = this.add.text(425, 200, 'Drag & Drop Dataset\n(JSON or CoNLL .txt)', { fontSize: '24px', color: '#aaaaaa', align: 'center' }).setOrigin(0.5);
+        this.promptText = this.add.text(425, 200, 'Drag & Drop Dataset\n(JSON or CoNLL .txt)', { fontSize: '24px', color: '#aaaaaa', align: 'center', wordWrap: { width: 700 } }).setOrigin(0.5);
 
         this.createHTMLUI();
 
@@ -107,31 +106,19 @@ export class MainMenuScene extends Phaser.Scene {
         const reader = new FileReader();
         reader.onload = (event) => {
             const rawContent = event.target?.result as string;
-            let dataset: SentenceData[] = [];
-
-            // 1. Try parsing as JSON, fallback to CoNLL
+            // 1. Detect format, parse and canonicalize (clear error messages on failure)
+            let dataset: SentenceData[];
+            let fileHash: string;
             try {
-                const parsed = JSON.parse(rawContent);
-                if (Array.isArray(parsed)) dataset = parsed;
-                else throw new Error("Not a JSON array");
-            } catch (error) {
-                dataset = parseCoNLL(rawContent);
-                if (dataset.length === 0) {
-                    this.showError('Error: Invalid JSON or CoNLL format.');
-                    return;
-                }
-            }
-
-            // 2. Keep only sentences the game can use (ruleset rule: needs >= 1 valid entity)
-            const playable = filterPlayable(dataset);
-            if (playable.length === 0) {
-                this.showError('Error: No sentence with a valid entity found.');
+                const loaded = loadDatasetText(rawContent);
+                dataset = loaded.canonical.sentences;
+                fileHash = loaded.canonical.contentHash.slice(0, 16); // short form until the M4 share code
+            } catch (err) {
+                this.showError(err instanceof DatasetParseError ? `Error: ${err.message}` : 'Error: could not read this file.');
                 return;
             }
-            dataset = playable;
 
-            // 3. Hash dataset & Read settings
-            const fileHash = hashString(rawContent);
+            // 2. Read settings
             const seedInput = (document.getElementById('ner-seed') as HTMLInputElement).value.trim();
 
             let finalSettings: GameSettings = {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseCoNLL } from './conll';
+import { DatasetParseError } from './errors';
 
 describe('parseCoNLL', () => {
     it('parses BIO spans into inclusive [start, end, label]', () => {
@@ -37,13 +38,24 @@ describe('parseCoNLL', () => {
         expect(parseCoNLL(text)[0].ner).toEqual([[0, 1, 'X'], [2, 2, 'Y']]);
     });
 
-    it('returns an empty array for single-column input', () => {
-        expect(parseCoNLL('hello\nworld\n')).toEqual([]);
+    it('handles IOB1: I- opens an entity, B- only separates adjacent entities of the same type', () => {
+        const text = ['a I-X', 'b I-X', 'c B-X', 'd I-X', 'e O'].join('\n');
+        expect(parseCoNLL(text)[0].ner).toEqual([[0, 1, 'X'], [2, 3, 'X']]);
     });
 
-    // Known leniency (tighten in M3): any line with >= 2 columns is accepted,
-    // so plain prose parses as tokens with zero entities.
-    it('currently accepts multi-word prose lines (documented leniency)', () => {
-        expect(parseCoNLL('just some prose\n')[0].ner).toEqual([]);
+    it('accepts CRLF line endings and returns [] for empty input', () => {
+        expect(parseCoNLL('a B-X\r\nb O\r\n')[0].ner).toEqual([[0, 0, 'X']]);
+        expect(parseCoNLL('')).toEqual([]);
+    });
+
+    it('rejects single-column input, naming the line', () => {
+        expect(() => parseCoNLL('hello\nworld\n')).toThrow(DatasetParseError);
+        expect(() => parseCoNLL('hello\nworld\n')).toThrow(/Line 1/);
+    });
+
+    it('rejects prose and malformed tags instead of parsing them as a zero-entity dataset', () => {
+        expect(() => parseCoNLL('just some prose\n')).toThrow(/Line 1: last column must be O, B-<label> or I-<label>, got "prose"/);
+        expect(() => parseCoNLL('ok O\nbad B-\n')).toThrow(/Line 2/);
+        expect(() => parseCoNLL('ok O\nbad b-X\n')).toThrow(/Line 2/);
     });
 });

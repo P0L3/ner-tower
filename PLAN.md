@@ -102,18 +102,18 @@ worker/                    # Cloudflare Worker + D1 schema
 
 ### M3 — Data module (#2)
 **Core**
-- [ ] Canonical `SentenceData` type with optional `meta`
-- [ ] `canonical.ts`: fixed ordering, validation (indices vs tokens, overlapping spans), filtering, SHA-256 content hash
+- [X] Canonical `SentenceData` type with optional `meta`
+- [X] `canonical.ts`: fixed ordering, validation (indices vs tokens, overlapping spans), filtering, SHA-256 content hash
 - [ ] IndexedDB cache keyed by `datasetId@version`
-- [ ] `profile.ts` extracted from the menu scene
+- [X] `profile.ts` extracted from the menu scene
 
 **Generic formats (drag & drop)**
-- [ ] Canonical JSON / GLiNER-style (current format)
-- [ ] JSONL
-- [ ] CoNLL / BIO (port existing parser, handle IOB1/IOB2)
-- [ ] Auto-detection + clear error messages
-- [ ] Tighten CoNLL parser: currently any line with >= 2 columns is accepted, so prose parses as a zero-entity dataset (documented in `conll.test.ts`)
-- [ ] Unit tests with fixtures per format
+- [X] Canonical JSON / GLiNER-style (current format)
+- [X] JSONL
+- [X] CoNLL / BIO (port existing parser, handle IOB1/IOB2)
+- [X] Auto-detection + clear error messages
+- [X] Tighten CoNLL parser: currently any line with >= 2 columns is accepted, so prose parses as a zero-entity dataset (documented in `conll.test.ts`)
+- [X] Unit tests with fixtures per format
 
 **Curated sources (one file each)**
 - [ ] Source interface: `id, title, description, license, version, palette?, load(onProgress)`
@@ -121,7 +121,7 @@ worker/                    # Cloudflare Worker + D1 schema
 - [ ] `clirener-silver.ts`
 - [ ] `scierc.ts` (document-level span offsets → sentence-level)
 - [ ] Per-source smoke test against the live endpoint (separate `npm run test:live`, not in CI default)
-- [ ] Cap on loaded sentences (configurable, a few thousand) with deterministic selection
+- [X] Cap on loaded sentences (configurable, a few thousand) with deterministic selection
 
 **Menu (DOM)**
 - [ ] Dataset picker (curated list) as the default screen
