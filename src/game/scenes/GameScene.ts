@@ -6,6 +6,7 @@ import { seededRandom } from '../../core/rng';
 import { zzfx, sndJump, sndLand, sndCombo, sndPhase, sndOver } from '../../core/audio';
 import { buildColorMap } from '../palette';
 import { TowerPlanner } from '../tower';
+import { phaseAt, unstableLabelsAt } from '../phases';
 import { TowerStreamer } from '../streamer';
 import { SentenceView, type PlatformRef } from '../SentenceView';
 
@@ -14,6 +15,7 @@ export class GameScene extends Phaser.Scene {
     private entityStats!: EntityStats[];
     private settings!: GameSettings;
     private planner!: TowerPlanner;
+    private labelOrder: string[] = [];
     private streamer!: TowerStreamer;
 
     private player!: Phaser.GameObjects.Container;
@@ -46,7 +48,11 @@ export class GameScene extends Phaser.Scene {
         this.dataset = data.dataset;
         this.entityStats = data.entityStats;
         this.settings = data.settings;
-        this.planner = new TowerPlanner(this.dataset, seededRandom(this.settings.seed));
+        this.labelOrder = this.entityStats.map(s => s.label);
+        this.planner = new TowerPlanner(this.dataset, seededRandom(this.settings.seed), {
+            labelOrder: this.labelOrder,
+            phaseDist: this.settings.phaseDist,
+        });
 
         this.hasStarted = false;
         this.currentPhase = 0;
@@ -233,19 +239,23 @@ export class GameScene extends Phaser.Scene {
             this.hudHeightText.setText(`Height: ${this.maxHeightReached}m`);
         }
 
-        const targetPhase = Math.floor(this.maxHeightReached / this.settings.phaseDist); // Load from settings
-        if (targetPhase > this.currentPhase && this.currentPhase < this.entityStats.length - 1) {
-            this.currentPhase = targetPhase;
-            const unstableEntity = this.entityStats[this.currentPhase - 1].label;
+        const phase = phaseAt(this.maxHeightReached, this.settings.phaseDist, this.labelOrder.length);
+        if (phase > this.currentPhase) {
+            const advanced = phase - this.currentPhase;
+            this.currentPhase = phase;
 
             zzfx(...sndPhase); // Sound: Warning Phase
-
-            this.unstableLabels.add(unstableEntity);
             this.cameras.main.shake(200, 0.01);
-            const uiText = this.uiEntityTexts.get(unstableEntity);
-            if (uiText) { uiText.setColor('#555555'); uiText.setText(`[X] ${unstableEntity}`); }
-            this.streamer.refreshLabel(unstableEntity); // dims those platforms in all live sentences
-            this.scrollSpeed += this.settings.speedInc; // Load from settings
+
+            // Turn EVERY label that is unstable at this phase (also covers skipped phases)
+            for (const label of unstableLabelsAt(phase, this.labelOrder)) {
+                if (this.unstableLabels.has(label)) continue;
+                this.unstableLabels.add(label);
+                const uiText = this.uiEntityTexts.get(label);
+                if (uiText) { uiText.setColor('#555555'); uiText.setText(`[X] ${label}`); }
+                this.streamer.refreshLabel(label); // dims those platforms in all live sentences
+            }
+            this.scrollSpeed += this.settings.speedInc * advanced; // Load from settings
         }
     }
 }

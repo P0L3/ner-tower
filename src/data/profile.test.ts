@@ -27,4 +27,18 @@ describe('profileEntities', () => {
     it('returns an empty list when there are no entities', () => {
         expect(profileEntities([{ text: '', tokenized_text: ['x'], ner: [] }])).toEqual([]);
     });
+
+    it('ignores invalid spans (they must not create labels)', () => {
+        const stats = profileEntities([
+            { text: '', tokenized_text: ['a', 'b'], ner: [[0, 0, 'REAL'], [1, 5, 'PHANTOM'], [1, 0, 'BACKWARDS']] },
+        ]);
+        expect(stats.map(s => s.label)).toEqual(['REAL']);
+    });
+
+    it('breaks hardness ties by label name, independent of input order', () => {
+        const a: SentenceData = { text: '', tokenized_text: ['x'], ner: [[0, 0, 'ZED']] };
+        const b: SentenceData = { text: '', tokenized_text: ['x'], ner: [[0, 0, 'ALPHA']] };
+        expect(profileEntities([a, b]).map(s => s.label)).toEqual(['ALPHA', 'ZED']);
+        expect(profileEntities([b, a]).map(s => s.label)).toEqual(['ALPHA', 'ZED']);
+    });
 });

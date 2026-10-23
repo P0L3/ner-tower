@@ -3,6 +3,7 @@ import { TowerStreamer, STREAM, type StreamedView } from './streamer';
 import { TowerPlanner, type PlacedSentence } from './tower';
 import { seededRandom } from '../core/rng';
 import { filterPlayable } from '../data/playable';
+import { profileEntities } from '../data/profile';
 import { SAMPLE_SENTENCES } from '../data/fixtures/sample';
 
 class FakeView implements StreamedView {
@@ -16,7 +17,10 @@ class FakeView implements StreamedView {
 }
 
 function setup(seed = 42) {
-    const planner = new TowerPlanner(filterPlayable(SAMPLE_SENTENCES), seededRandom(seed));
+    const data = filterPlayable(SAMPLE_SENTENCES);
+    const planner = new TowerPlanner(data, seededRandom(seed), {
+        labelOrder: profileEntities(data).map(s => s.label), phaseDist: 100,
+    });
     const created: FakeView[] = [];
     const streamer = new TowerStreamer(planner, p => { const v = new FakeView(p); created.push(v); return v; });
     return { planner, streamer, created };

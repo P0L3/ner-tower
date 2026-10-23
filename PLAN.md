@@ -88,14 +88,16 @@ worker/                    # Cloudflare Worker + D1 schema
 **Rules-affecting fixes 🔒**
 - [x] 🔒 Filter sentences with zero valid entities at load time (`filterPlayable`, order-preserving)
 - [x] 🔒 Over-long tokens are truncated with an ellipsis to fit one line; invalid spans are ignored (not clamped)
-- [ ] 🔒 Fix phase skipping when height crosses several thresholds at once
-- [ ] 🔒 Reachability guarantee: a valid (stable-label) path must exist within max jump reach at every height
+- [x] 🔒 Shared phase functions (`phases.ts`) used by game and generator; every label up to the phase is applied (fixes skipping)
+- [x] 🔒 `profileEntities` counts valid spans only; label order tie-break by name (independent of input order/format)
+- [x] 🔒 Reachability guarantee: phase-aware pools, up to 16 draws, gap compression, rise <= 260 px (derived from physics), 30 m phase lead
+- [x] `npm run analyze` dataset health tool (per-phase climbability report; `--synthetic` for a demo)
 - [x] 🔒 Collect all physics/generation constants into `config/ruleset.ts` (`PHYSICS`, `COMBO`, `CAMERA`, `LAYOUT`, `TOWER`)
 
 ### M2 — Ruleset v1 freeze 🔒
 - [x] Create tiny synthetic fixture dataset (`src/data/fixtures/sample.ts`, original content, safe to ship)
 - [x] Golden test: seed + fixture → sentence-ID sequence + layout hash (exists; constants may still be refreshed until the freeze)
-- [ ] Reachability property test over many seeds
+- [x] Reachability property test over many seeds and phase distances (independent recomputation)
 - [ ] Set `RULESET_VERSION = 1`; document the "bump on change" rule in the contributor guide
 
 ### M3 — Data module (#2)

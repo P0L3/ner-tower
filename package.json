@@ -8,9 +8,11 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "analyze": "tsx tools/analyze.ts"
   },
   "devDependencies": {
+    "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vite": "^8.0.1",
     "vite-plugin-singlefile": "^2.3.2",

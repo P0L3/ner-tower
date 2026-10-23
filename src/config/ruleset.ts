@@ -64,3 +64,46 @@ export const CAMERA = {
 
 /** Score: 1 height unit per this many pixels climbed. */
 export const HEIGHT_UNIT_PX = 10;
+
+/**
+ * Height of a jump with initial upward speed v0 under Arcade physics' fixed-step integration
+ * (v += g*dt, then y += v*dt, 60 steps per second). Pure, so REACH below follows PHYSICS.
+ */
+export function jumpApex(v0: number, gravity: number = PHYSICS.gravityY, stepsPerSecond = 60): number {
+    if (!(gravity > 0) || !(v0 > 0)) return 0;
+    const dt = 1 / stepsPerSecond;
+    let v = -v0, y = 0, min = 0;
+    while (v <= 0) { v += gravity * dt; y += v * dt; if (y < min) min = y; }
+    return -min;
+}
+
+/**
+ * Reachability rules for the generator. A platform is "reachable" if it is at most `maxRise`
+ * above the highest platform the player can currently stand on (horizontal reach is generous
+ * and not modeled: air time is >1 s, speed up to 500 px/s, world width 540 px).
+ */
+export const REACH = {
+    /** Apex of a full-speed running jump (about 294 px with the current physics). */
+    runningApex: jumpApex(-PHYSICS.jumpVelocity + PHYSICS.jumpSpeedBonus),
+    /**
+     * Safety factor on the running apex (~11.5% headroom). Note: rises at the default gap fall on
+     * a lattice of 155 + 35k px (line spacing 35, gap 120), and 260 is one of its points, so a
+     * limit just below 260 would compress many gaps by a pointless 2 px.
+     */
+    margin: 0.885,
+    /** Largest allowed rise between consecutive stable platforms (about 260 px). */
+    maxRise: Math.floor(jumpApex(-PHYSICS.jumpVelocity + PHYSICS.jumpSpeedBonus) * 0.885),
+    /** Smallest vertical gap between sentences when the generator has to compress the tower. */
+    minGap: 24,
+    /** Candidate sentences tried per placement before taking the best-effort fallback. */
+    maxDraws: 16,
+} as const;
+
+export const PHASE = {
+    /**
+     * Sentences are built for the phase the player will be in this many meters ABOVE the
+     * sentence's bottom edge, so the tower ahead already survives the next label turning
+     * unstable (covers sentence height and jumping across a phase boundary).
+     */
+    leadMeters: 30,
+} as const;

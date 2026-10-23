@@ -47,3 +47,7 @@ coverage/
 
 # Codebase Bundle
 nertower.txt
+codebase.txt
+
+# Data
+EXPORT
