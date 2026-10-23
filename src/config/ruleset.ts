@@ -4,9 +4,9 @@
  * Changing anything in here (or in layout.ts / tower.ts logic) changes the tower for existing
  * seeds. Once the ruleset is frozen (milestone M2) such a change MUST bump RULESET_VERSION.
  *
- * 0 = not frozen yet; scores must not be ranked.
+ * ; scores must not be ranked.
  */
-export const RULESET_VERSION = 0;
+export const RULESET_VERSION = 1;
 
 /**
  * Token layout metrics in pixels. These are FIXED numbers, deliberately not measured from the
