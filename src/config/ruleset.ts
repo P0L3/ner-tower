@@ -4,7 +4,8 @@
  * Changing anything in here (or in layout.ts / tower.ts logic) changes the tower for existing
  * seeds. Once the ruleset is frozen (milestone M2) such a change MUST bump RULESET_VERSION.
  *
- * ; scores must not be ranked.
+ * FROZEN at version 1: see docs/RULESET.md. `ruleset.lock.test.ts` fails if anything that
+ * affects what a seed produces changes without a version bump.
  */
 export const RULESET_VERSION = 1;
 

@@ -32,6 +32,15 @@ describe('layoutSentence', () => {
         }
     });
 
+    it('keeps a token that ends exactly on the right edge on the same line, and wraps one that is a character wider', () => {
+        const fit = layoutSentence(sent(['e'.repeat(16), 'e'.repeat(16), 'e'.repeat(16)]));
+        expect(fit.tokens[2].x + fit.tokens[2].width).toBe(LAYOUT.rightEdge);
+        expect(fit.lines).toBe(0);
+        const over = layoutSentence(sent(['e'.repeat(16), 'e'.repeat(16), 'e'.repeat(17)]));
+        expect(over.tokens[2].y).toBe(LAYOUT.lineSpacing);
+        expect(over.tokens[2].x).toBe(LAYOUT.marginX);
+    });
+
     it('truncates over-long tokens with an ellipsis and never leaves an empty first line', () => {
         const l = layoutSentence(byId('fx-5'));
         const url = l.tokens[1];

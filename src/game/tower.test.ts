@@ -131,9 +131,8 @@ describe('TowerPlanner: reachability guarantee (property test)', () => {
 });
 
 describe('GOLDEN: tower for seed 42 on the sample dataset (phaseDist 50)', () => {
-    // If this fails you changed what existing seeds produce.
-    //  - Before the ruleset freeze (RULESET_VERSION = 0): inspect the change, then update the constants.
-    //  - After the freeze: bump RULESET_VERSION instead, and only then update the constants.
+    // If this fails you changed what existing seeds produce. The ruleset is frozen (RULESET_VERSION >= 1):
+    // follow docs/RULESET.md (bump RULESET_VERSION, pin the new fingerprint), and only then update these constants.
     it('matches the recorded sequence and geometry', () => {
         const placed = plan(sample, 42, 12, 50);
         expect(placed.map(p => p.sentence.id).join(',')).toBe('fx-7,fx-6,fx-9,fx-8,fx-2,fx-6,fx-3,fx-8,fx-10,fx-6,fx-5,fx-9');

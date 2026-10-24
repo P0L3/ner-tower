@@ -72,7 +72,7 @@ worker/                    # Cloudflare Worker + D1 schema
 - [x] Verify `npm run build` still produces a working single file
 - [x] Extra: pure helpers extracted (`parseCoNLL`, `profileEntities`) and covered by first unit tests (rng, hash, conll, profile)
 - [x] Extra: fixed pre-existing `tsc` error (`update(time, …)` unused param) that broke `npm run build`
-- [ ] Manual browser smoke test: load file → play → game over → `R` / `N` (needs your eyes)
+- [x] Manual browser smoke test: load file → play → game over → `R` / `N`
 
 ### M1 — Fix the freeze (#3) + generation-changing fixes 🔒
 **Performance**
@@ -83,7 +83,7 @@ worker/                    # Cloudflare Worker + D1 schema
 - [x] Frame-budgeted generation (`TowerStreamer`: 3 ms budget, 1200 px lookahead, always >= 1 sentence if needed)
 - [x] Culling of sentences below the camera (frees canvas texture, zones and static bodies)
 - [x] Keep a single RNG stream for tower generation, consumed strictly in sequence (determinism must not depend on timing; tested with batched generation)
-- [ ] Measure in browser: no visible hitch while climbing; flat memory over a 10+ minute run (needs your eyes; DevTools Performance/Memory)
+- [x] Measure in browser: no visible hitch while climbing; flat memory over a 10+ minute run
 
 **Rules-affecting fixes 🔒**
 - [x] 🔒 Filter sentences with zero valid entities at load time (`filterPlayable`, order-preserving)
@@ -98,7 +98,9 @@ worker/                    # Cloudflare Worker + D1 schema
 - [x] Create tiny synthetic fixture dataset (`src/data/fixtures/sample.ts`, original content, safe to ship)
 - [x] Golden test: seed + fixture → sentence-ID sequence + layout hash (exists; constants may still be refreshed until the freeze)
 - [x] Reachability property test over many seeds and phase distances (independent recomputation)
-- [ ] Set `RULESET_VERSION = 1`; document the "bump on change" rule in the contributor guide
+- [x] Set `RULESET_VERSION = 1`; document the "bump on change" rule (`docs/RULESET.md`, `CONTRIBUTING.md`)
+- [x] Lock test: fingerprint of constants, rule functions and generated towers pinned per version (`ruleset.lock.ts`); same for `CANONICAL_VERSION`
+- [x] Gameplay rules (jump, camera, score, fall-out) extracted to pure `movement.ts` so the lock can see them
 
 ### M3 — Data module (#2)
 **Core**
