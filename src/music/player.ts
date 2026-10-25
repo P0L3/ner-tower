@@ -2,7 +2,7 @@ import { seededRandom } from '../core/rng';
 import { STEPS_PER_BAR, isAudible, midiToFreq, type Bar, type Composer, type MusicNote, type Voice } from './composer';
 
 /** Loudness of each part. Tune the mix here; the sound effects (core/audio.ts) play at 0.3 on top of it. */
-export const MIX = { master: 0.5, lead: 0.16, pluck: 0.09, bass: 0.26, pad: 0.07, drums: 0.2 } as const;
+export const MIX = { master: 0.5, lead: 0.16, pluck: 0.09, bass: 0.26, pad: 0.07, drums: 1 } as const;
 
 /** Tempo rises with the phase, like the scroll speed does. */
 export const TEMPO = { perPhase: 0.015, maxPhases: 20 } as const;

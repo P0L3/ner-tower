@@ -8,6 +8,7 @@ npm run dev        # dev server on http://localhost:5173
 npm test           # unit tests (vitest)
 npm run build      # type-check + single-file build in dist/
 npm run analyze -- path/to/data.json   # dataset health report
+npm run music      # listening booth for the background music (no game)
 npm run test:live  # smoke test against the real Hugging Face API (needs network)
 ```
 

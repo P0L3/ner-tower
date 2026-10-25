@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NER Tower: music tester</title>
+  <style>
+    body { background: #1a1a1a; color: #e6e6e6; font: 14px/1.5 monospace; margin: 0; padding: 24px; max-width: 760px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .hint { color: #999; margin-bottom: 18px; }
+    .row { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+    .row > label { width: 90px; color: #aaa; }
+    select, input[type=number], input[type=text] { background: #222; color: #e6e6e6; border: 1px solid #555; padding: 4px 6px; font: inherit; }
+    input[type=range] { width: 260px; }
+    button { background: #333; color: #fff; border: 1px solid #666; padding: 6px 14px; font: inherit; cursor: pointer; }
+    button.primary { background: #2563eb; border-color: #2563eb; }
+    button:disabled { opacity: .5; cursor: default; }
+    #info { margin: 14px 0; padding: 10px; background: #222; border: 1px solid #333; white-space: pre-wrap; }
+    #labels { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; }
+    #labels span { white-space: nowrap; }
+    #labels .off { color: #555; text-decoration: line-through; }
+    #status { color: #ffd24a; min-height: 1.5em; }
+  </style>
+</head>
+<body>
+  <h1>NER Tower: music tester</h1>
+  <div class="hint">Plays the real composer and player from <code>src/music</code>, without the game. Run <code>npm run music</code>.</div>
+  <div id="app"></div>
+  <script type="module" src="./music-test.ts"></script>
+</body>
+</html>

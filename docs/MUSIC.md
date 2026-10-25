@@ -34,3 +34,4 @@ touches the tower generator and never affects the score, so it is not part of th
 - `src/music/composer.ts`: pure, deterministic composition (no Web Audio). Unit tested.
 - `src/music/player.ts`: Web Audio synth and look-ahead scheduler. `MIX` holds the loudness of each part.
 - `src/music/prefs.ts`: the on/off preference.
+- `tools/music-test.html` + `tools/music-test.ts`: a stand-alone listening booth (no game). Run `npm run music`; pick a dataset, seed and phase, and hear exactly what the game plays.
