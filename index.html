@@ -13,12 +13,17 @@
       }
       /* Phaser scales the canvas (Scale.FIT) to fill this box and centers it. The menu and
          game over panel are positioned relative to it. */
-      #game-container {
-        position: relative;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-      }
+
+        #game-container {
+          position: relative;
+          width: 100vw;
+          height: 100vh;
+          /* Add these to stop it from zooming in infinitely */
+          max-width: 1000px;
+          max-height: 950px;
+          margin: 0 auto; /* Centers the limited box on the screen */
+        }
+
       #game-container canvas { box-shadow: 0 0 20px rgba(0,0,0,0.8); }
     </style>
   </head>

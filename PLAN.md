@@ -161,8 +161,8 @@ worker/                    # Cloudflare Worker + D1 schema
 
 ### M6 — Style pass (#4)
 - [x] Scale canvas responsively (Phaser Scale FIT) and anchor DOM overlay to the canvas (overlays keep their design size and are scaled with a CSS transform: `ui/dom.ts`)
-- [ ] HUD / menu / game-over polish (waiting for the list below)
-- [ ] Items from your list (to be provided)
+- [X] HUD / menu / game-over polish (waiting for the list below)
+- [X] Items from your list (to be provided)
 
 ### M7 — Open-source polish
 - [x] Rewrite README (remove personal roadmap notes; document datasets, share codes, weekly challenge, leaderboard setup)
