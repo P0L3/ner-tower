@@ -12,6 +12,7 @@ It runs from a single HTML file: no server, no Python, no account.
 |---|---|
 | Left / Right | Run |
 | Up | Jump (faster running = higher jump) |
+| M | Music on / off |
 | R / S / N | On the game over screen: restart with the same seed / new seed, same settings / back to the menu |
 
 - Land on entity tokens to climb. Plain words are not solid.
@@ -21,6 +22,12 @@ It runs from a single HTML file: no server, no Python, no account.
 - Landing on higher platforms within 1.5 s builds a **combo**. At 5 you get super jumps.
 - The view scrolls up and speeds up with each phase. Fall below the bottom edge and the run ends.
   Your score is the height in meters.
+
+## Music
+
+Each run has background music composed from the dataset and seeded like the tower: the words of real
+sentences become the melody, and when an entity type turns unstable, its notes fall silent. Press **M**
+to switch it off. Details: [docs/MUSIC.md](docs/MUSIC.md).
 
 ## Datasets
 

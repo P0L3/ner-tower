@@ -25,6 +25,7 @@ npm run test:live  # smoke test against the real Hugging Face API (needs network
 src/core/     rng, hash, audio (no game logic)
 src/data/     dataset types, parsers (formats/), canonicalization, profiling
 src/game/     layout, tower planner, phases, movement rules, streaming, scenes
+src/music/    dataset-seeded background music (composer is pure, player is Web Audio)
 src/config/   ruleset constants, settings, ruleset lock
 tools/        dev scripts (analyze)
 docs/         design notes

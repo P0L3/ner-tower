@@ -3,7 +3,10 @@ import type { SentenceData, EntityStats } from '../../data/types';
 import type { GameSettings } from '../../config/settings';
 import { PHYSICS, COMBO, CAMERA } from '../../config/ruleset';
 import { seededRandom } from '../../core/rng';
-import { zzfx, sndJump, sndLand, sndCombo, sndPhase, sndOver } from '../../core/audio';
+import { zzfx, resumeAudio, audioContext, sndJump, sndLand, sndCombo, sndPhase, sndOver } from '../../core/audio';
+import { Composer, musicSeed } from '../../music/composer';
+import { MusicPlayer } from '../../music/player';
+import { loadMusicEnabled, saveMusicEnabled } from '../../music/prefs';
 import { buildColorMap, type Palette } from '../palette';
 import { TowerPlanner } from '../tower';
 import { phaseAt, unstableLabelsAt } from '../phases';
@@ -19,6 +22,8 @@ export class GameScene extends Phaser.Scene {
     private planner!: TowerPlanner;
     private labelOrder: string[] = [];
     private streamer!: TowerStreamer;
+    private music: MusicPlayer | undefined;
+    private musicText!: Phaser.GameObjects.Text;
 
     private player!: Phaser.GameObjects.Container;
     private playerVisual!: Phaser.GameObjects.Rectangle;
@@ -94,6 +99,7 @@ export class GameScene extends Phaser.Scene {
         this.streamer.update(cam.scrollY, cam.scrollY + cam.height, Infinity);
 
         this.buildSideHUD();
+        this.startMusic();
 
         const graphics = this.add.graphics();
         graphics.fillStyle(0xffffff, 1);
@@ -147,13 +153,40 @@ export class GameScene extends Phaser.Scene {
         this.comboText = this.add.text(620, 70, '', { fontSize: '28px', color: '#ffff00', fontStyle: 'bold' }).setScrollFactor(0).setDepth(101);
         this.add.text(620, 120, 'STABILITY LOG:', { fontSize: '18px', color: '#aaaaaa' }).setScrollFactor(0).setDepth(101);
 
+        // 28 labels would run off the bottom at 25 px each: squeeze the list to fit (display only)
+        const rowH = Math.min(25, 600 / Math.max(1, this.entityStats.length));
         let textY = 150;
         this.entityStats.forEach(stat => {
             const hexColor = '#' + this.colorMap.get(stat.label)!.toString(16).padStart(6, '0');
             const txt = this.add.text(620, textY, `■ ${stat.label}`, { fontSize: '14px', color: hexColor }).setScrollFactor(0).setDepth(101);
             this.uiEntityTexts.set(stat.label, txt);
-            textY += 25;
+            textY += rowH;
         });
+
+        this.musicText = this.add.text(620, 765, '', { fontSize: '14px', color: '#aaaaaa' }).setScrollFactor(0).setDepth(101);
+    }
+
+    /**
+     * Background music, composed from the dataset and seeded like the tower (see docs/MUSIC.md).
+     * Cosmetic: it has its own RNG and never influences the tower or the score.
+     */
+    private startMusic() {
+        resumeAudio();
+        const { datasetId, contentHash, seed } = this.settings;
+        const music = new MusicPlayer(audioContext, new Composer(this.dataset, musicSeed(datasetId, contentHash, seed)), { enabled: loadMusicEnabled() });
+        this.music = music;
+        music.start();
+        this.refreshMusicLabel();
+        this.input.keyboard!.on('keydown-M', () => {
+            music.setEnabled(!music.isEnabled);
+            saveMusicEnabled(music.isEnabled);
+            this.refreshMusicLabel();
+        });
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { music.stop(0.3); this.music = undefined; });
+    }
+
+    private refreshMusicLabel() {
+        this.musicText.setText(`Music: ${this.music?.isEnabled ? 'on' : 'off'}  (M)`);
     }
 
     update(_time: number, delta: number) {
@@ -252,6 +285,7 @@ export class GameScene extends Phaser.Scene {
                 this.streamer.refreshLabel(label); // dims those platforms in all live sentences
             }
             this.scrollSpeed += this.settings.speedInc * advanced; // Load from settings
+            this.music?.setPhase(phase, this.unstableLabels); // lead notes of unstable labels fall silent, drums and tempo build
         }
     }
 }

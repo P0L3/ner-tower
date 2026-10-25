@@ -163,6 +163,8 @@ worker/                    # Cloudflare Worker + D1 schema
 - [x] Scale canvas responsively (Phaser Scale FIT) and anchor DOM overlay to the canvas (overlays keep their design size and are scaled with a CSS transform: `ui/dom.ts`)
 - [X] HUD / menu / game-over polish (waiting for the list below)
 - [X] Items from your list (to be provided)
+- [x] Dataset-seeded background music: `src/music/` (pure composer + Web Audio player), `M` to mute, see `docs/MUSIC.md`
+- [ ] Tune the music mix by ear (`MIX` in `src/music/player.ts`)
 
 ### M7 — Open-source polish
 - [x] Rewrite README (remove personal roadmap notes; document datasets, share codes, weekly challenge, leaderboard setup)

@@ -1,6 +1,6 @@
 import { zzfxX } from './zzfx';
 
-export { zzfx } from './zzfx';
+export { zzfx, zzfxX as audioContext } from './zzfx';
 
 /** Browsers suspend audio until a user gesture; call this from any input handler. */
 export function resumeAudio(): void {

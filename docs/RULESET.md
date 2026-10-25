@@ -23,7 +23,7 @@ hash) has its own version, `CANONICAL_VERSION`, with the same mechanism (see bel
 
 Anything that only changes how the game looks or performs, never which tower appears or what a
 run is worth: rendering (`SentenceView`), streaming and culling (`streamer.ts`), colors, HUD,
-audio, menus, particles. Change those freely.
+audio, background music (`src/music/`, see [MUSIC.md](MUSIC.md)), menus, particles. Change those freely.
 
 Known limit: the lock covers the constants, the pure rule functions and the generated towers. It
 does **not** see the combo state machine or input handling inside `GameScene`. If you change how
