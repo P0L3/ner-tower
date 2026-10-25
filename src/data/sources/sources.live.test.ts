@@ -13,7 +13,7 @@ import { HF_DATASETS_SERVER } from '../hf/datasetsServer';
 import { CLIRENER_TYPES } from '../hf/fakeServer.testutil';
 
 describe.each(SOURCES.map(s => [s.id, s] as const))('live: %s', (_id, source) => {
-    const repo = source.datasetId.slice('hf:'.length);
+    const repo = source.datasetId;
 
     it('sends a CORS header that allows browsers (including file:// pages, whose origin is "null")', async () => {
         const res = await fetch(`${HF_DATASETS_SERVER}/splits?dataset=${encodeURIComponent(repo)}`, { headers: { Origin: 'null' } });

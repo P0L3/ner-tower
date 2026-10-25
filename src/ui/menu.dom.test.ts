@@ -12,6 +12,9 @@ import { SourceLoadError } from '../data/sources/errors';
 import { makeSyntheticDataset } from '../data/fixtures/synthetic';
 import { canonicalize } from '../data/canonical';
 import type { DatasetSource } from '../data/sources/types';
+import { encodeShareCode } from '../config/shareCode';
+import { weeklySettings } from '../config/weekly';
+import { LOCAL_DATASET_ID } from '../config/settings';
 
 const tick = () => new Promise(r => setTimeout(r, 0));
 async function until(f: () => boolean) { for (let i = 0; i < 50 && !f(); i++) await tick(); }
@@ -50,7 +53,7 @@ describe('menu', () => {
         expect(started).toHaveLength(1);
         expect(started[0].dataset).toEqual(canonical.sentences);
         expect(started[0].palette).toBe(clirenerGold.palette);
-        expect(started[0].settings).toMatchObject({ baseSpeed: 0.5, speedInc: 0.15, phaseDist: 100, datasetHash: canonical.contentHash.slice(0, 16) });
+        expect(started[0].settings).toMatchObject({ baseSpeed: 0.5, speedInc: 0.15, phaseDist: 100, datasetId: clirenerGold.datasetId, contentHash: canonical.contentHash.slice(0, 16) });
         expect(await cache.has(clirenerGold)).toBe(true);
     });
 
@@ -78,13 +81,69 @@ describe('menu', () => {
         expect(started).toHaveLength(0);
     });
 
-    it('rejects a share code made for another dataset without starting', async () => {
+    const codeBox = () => document.querySelector('.nt-code') as HTMLInputElement;
+    const type = (v: string) => { codeBox().value = v; codeBox().dispatchEvent(new Event('input')); };
+    const hint = () => document.querySelector('.nt-hint')!;
+    const made = { datasetId: clirenerSilver.datasetId, contentHash: canonical.contentHash.slice(0, 16), seed: 99, baseSpeed: 1, speedInc: 0.5, phaseDist: 60 };
+
+    it('a pasted code selects its dataset, syncs the sliders and replays exactly that run', async () => {
+        const goldLoad = vi.fn(okLoad), silverLoad = vi.fn(okLoad);
+        const { started } = mount([fakeSource(clirenerGold, goldLoad), fakeSource(clirenerSilver, silverLoad)]);
+        type(encodeShareCode(made));
+        expect(hint().textContent).toContain('CliReNER Silver');
+        expect((document.querySelectorAll('.nt-card')[1] as HTMLElement).getAttribute('aria-checked')).toBe('true');
+        expect((document.querySelector('input[aria-label="Base speed"]') as HTMLInputElement).value).toBe('1');
+        button('Play')!.click();
+        await until(() => started.length > 0);
+        expect(started[0].settings).toEqual(made);
+        expect(goldLoad).not.toHaveBeenCalled();
+        expect(silverLoad).toHaveBeenCalledTimes(1);
+    });
+
+    it('explains a bad code as you type, and refuses to start with it', async () => {
         const { started } = mount([fakeSource(clirenerGold, okLoad)]);
-        (document.querySelector('.nt-code') as HTMLInputElement).value = btoa('0123456789abcdef|1|0.5|0.1|100');
+        type('NT1-garbage');
+        expect(hint().classList.contains('is-error')).toBe(true);
+        button('Play')!.click();
+        await tick();
+        expect(document.querySelector('.nt-error')!.textContent).toMatch(/damaged|does not look/);
+        expect(started).toHaveLength(0);
+    });
+
+    it('refuses a code whose data has changed since it was made', async () => {
+        const { started } = mount([fakeSource(clirenerGold, okLoad)]);
+        type(encodeShareCode({ ...made, datasetId: clirenerGold.datasetId, contentHash: '0123456789abcdef' }));
         button('Play')!.click();
         await until(() => document.querySelector('.nt-error') !== null);
-        expect(document.querySelector('.nt-error')!.textContent).toContain('different dataset');
+        expect(document.querySelector('.nt-error')!.textContent).toContain('different data');
         expect(started).toHaveLength(0);
+    });
+
+    it('a code for a dropped file asks for that file, and accepts it when dropped', async () => {
+        const { started } = mount([fakeSource(clirenerGold, okLoad)]);
+        const rows = [{ tokenized_text: ['Marie', 'Curie', 'left'], ner: [[0, 1, 'PERSON']] }];
+        const file = new File([JSON.stringify(rows)], 'd.json');
+        const fileHash = canonicalize(rows).contentHash.slice(0, 16);
+        type(encodeShareCode({ ...made, datasetId: LOCAL_DATASET_ID, contentHash: fileHash }));
+        expect(hint().textContent).toContain('Drop the same file');
+        button('Play')!.click();
+        await tick();
+        expect(document.querySelector('.nt-error')!.textContent).toContain('Drop that same file');
+        const drop = new Event('drop', { bubbles: true, cancelable: true }) as Event & { dataTransfer?: unknown };
+        drop.dataTransfer = { files: [file] };
+        document.querySelector('.nt-overlay')!.dispatchEvent(drop);
+        await until(() => started.length > 0);
+        expect(started[0].settings).toMatchObject({ datasetId: LOCAL_DATASET_ID, contentHash: fileHash, seed: 99 });
+    });
+
+    it('the weekly challenge button starts the weekly configuration for the selected dataset', async () => {
+        const { started } = mount([fakeSource(clirenerGold, okLoad)]);
+        const weekly = [...document.querySelectorAll('button')].find(b => b.textContent!.startsWith('Weekly challenge'))!;
+        expect(weekly.textContent).toMatch(/^Weekly challenge \d{4}-W\d{2}$/);
+        weekly.click();
+        await until(() => started.length > 0);
+        expect(started[0].settings).toEqual(weeklySettings(new Date(), clirenerGold.datasetId, canonical.contentHash.slice(0, 16)));
+        expect(started[0].settings.weekly).toBeDefined();
     });
 
     it('starts from a dropped file, with generated colors', async () => {

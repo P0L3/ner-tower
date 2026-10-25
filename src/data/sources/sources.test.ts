@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
+import { isValidDatasetId } from '../../config/settings';
 import { SOURCES, getSource, SourceLoadError, type LoadProgress } from './index';
 import { clirenerGold } from './clirener-gold';
 import { clirenerSilver } from './clirener-silver';
 import { CLIRENER_PALETTE } from './clirener-palette';
 import { CLIRENER_TYPES, fakeDatasetsServer, makeBioRows, type FakeDataset, type Intercept } from '../hf/fakeServer.testutil';
 
-const repoOf = (s: { datasetId: string }) => s.datasetId.slice('hf:'.length);
+const repoOf = (s: { datasetId: string }) => s.datasetId;
 const noSleep = () => Promise.resolve();
 
 /** Gold-sized fake: 150 + 21 + 21 rows over train/validation/test. */
@@ -95,7 +96,8 @@ describe('source registry', () => {
         expect(new Set(SOURCES.map(s => s.id)).size).toBe(SOURCES.length);
         expect(new Set(SOURCES.map(s => s.datasetId)).size).toBe(SOURCES.length);
         for (const s of SOURCES) {
-            expect(s.datasetId).toMatch(/^hf:[\w.-]+\/[\w.-]+$/);
+            expect(isValidDatasetId(s.datasetId)).toBe(true);
+            expect(s.datasetId).toContain('/');
             expect(s.url).toBe(`https://huggingface.co/datasets/${repoOf(s)}`);
             for (const field of [s.title, s.description, s.license, s.version]) expect(field.trim()).not.toBe('');
         }

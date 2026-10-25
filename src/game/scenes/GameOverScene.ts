@@ -1,7 +1,8 @@
 import * as Phaser from 'phaser';
 import type { SentenceData, EntityStats } from '../../data/types';
 import type { GameSettings } from '../../config/settings';
-import { encodeLegacyShareCode } from '../../config/legacyShareCode';
+import { encodeShareCode } from '../../config/shareCode';
+import { randomSeed, withNewSeed } from '../../config/settings';
 import type { Palette } from '../palette';
 
 export class GameOverScene extends Phaser.Scene {
@@ -24,12 +25,14 @@ export class GameOverScene extends Phaser.Scene {
     create() {
         this.add.text(425, 200, 'GAME OVER', { fontSize: '64px', color: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5);
         this.add.text(425, 280, `Score: ${this.finalHeight}m`, { fontSize: '32px', color: '#ffffff' }).setOrigin(0.5);
+        if (this.settings.weekly) this.add.text(425, 322, `Weekly challenge ${this.settings.weekly}`, { fontSize: '18px', color: '#ffd24a' }).setOrigin(0.5);
 
         // Generate the shareable seed string
-        const seedStr = encodeLegacyShareCode(this.settings);
+        const seedStr = encodeShareCode(this.settings);
 
         const shareCodeText = this.add.text(425, 380, `Share Code (Click to Copy):\n\n${seedStr}`, {
-            fontSize: '18px', color: '#00ffff', align: 'center', backgroundColor: '#222', padding: {x: 10, y: 10}
+            fontSize: '16px', color: '#00ffff', align: 'center', backgroundColor: '#222', padding: {x: 10, y: 10},
+            wordWrap: { width: 740, useAdvancedWrap: true }, // share codes are ~100 characters, with no spaces to wrap at
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         shareCodeText.on('pointerdown', () => {
@@ -39,10 +42,14 @@ export class GameOverScene extends Phaser.Scene {
             });
         });
 
-        this.add.text(425, 520, 'Press "R" to Restart\nPress "N" for New File', { fontSize: '24px', color: '#ffffff', align: 'center' }).setOrigin(0.5);
+        this.add.text(425, 540, 'R: restart with the same seed\nS: new seed, same settings\nN: back to the menu', { fontSize: '24px', color: '#ffffff', align: 'center' }).setOrigin(0.5);
 
         this.input.keyboard!.once('keydown-R', () => {
             this.scene.start('GameScene', { dataset: this.dataset, entityStats: this.entityStats, settings: this.settings, palette: this.palette });
+        });
+
+        this.input.keyboard!.once('keydown-S', () => {
+            this.scene.start('GameScene', { dataset: this.dataset, entityStats: this.entityStats, settings: withNewSeed(this.settings, randomSeed()), palette: this.palette });
         });
 
         this.input.keyboard!.once('keydown-N', () => {

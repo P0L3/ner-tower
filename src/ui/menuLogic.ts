@@ -1,6 +1,7 @@
 import type { DatasetSource, LoadProgress } from '../data/sources/types';
-import type { GameSettings } from '../config/settings';
-import { decodeLegacyShareCode } from '../config/legacyShareCode';
+import { LOCAL_DATASET_ID, randomSeed, shortContentHash, snapSetting, type GameSettings } from '../config/settings';
+import { decodeShareCode } from '../config/shareCode';
+import { weeklySettings } from '../config/weekly';
 
 /** Pure helpers behind the DOM menu, kept apart from the DOM so they can be unit tested. */
 
@@ -30,31 +31,46 @@ export function sizeLabel(source: Pick<DatasetSource, 'expectedRows'>): string {
     return n === undefined ? 'size unknown' : `${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} sentences`;
 }
 
-export interface SettingsInput {
-    baseSpeed: number;
-    speedInc: number;
-    phaseDist: number;
-    /** Text of the share code box; empty means a fresh random seed. */
-    shareCode: string;
-}
+/** How a run is configured: from the sliders (and maybe a pasted share code), or the weekly challenge. */
+export type StartMode =
+    | { kind: 'custom'; baseSpeed: number; speedInc: number; phaseDist: number; shareCode: string }
+    | { kind: 'weekly'; now: Date };
+
+/** The dataset a run is about to be played on. `contentHash` is the full canonical hash. */
+export interface DatasetRef { datasetId: string; contentHash: string }
 
 export type BuiltSettings = { ok: true; settings: GameSettings } | { ok: false; error: string };
 
-/** Short form of the content hash used in the prototype share code (until M4). */
-export const shortHash = (contentHash: string) => contentHash.slice(0, 16);
+const nameOf = (datasetId: string) => (datasetId === LOCAL_DATASET_ID ? 'a dropped file' : datasetId);
 
 /**
- * Settings for a run on a loaded dataset. A pasted share code overrides the sliders and the seed,
- * but must have been made for this exact dataset.
+ * Settings for a run on a loaded dataset. Slider values are snapped to the allowed grid. A pasted
+ * share code overrides sliders and seed, but must have been made for this exact data.
  */
-export function buildSettings(input: SettingsInput, contentHash: string, randomSeed: () => number = () => Math.floor(Math.random() * 1_000_000)): BuiltSettings {
-    const datasetHash = shortHash(contentHash);
-    const code = input.shareCode.trim();
-    if (code === '') {
-        return { ok: true, settings: { datasetHash, seed: randomSeed(), baseSpeed: input.baseSpeed, speedInc: input.speedInc, phaseDist: input.phaseDist } };
+export function buildSettings(mode: StartMode, dataset: DatasetRef, random: () => number = Math.random): BuiltSettings {
+    const contentHash = shortContentHash(dataset.contentHash);
+    if (mode.kind === 'weekly') {
+        if (dataset.datasetId === LOCAL_DATASET_ID) return { ok: false, error: 'The weekly challenge needs one of the listed datasets.' };
+        return { ok: true, settings: weeklySettings(mode.now, dataset.datasetId, contentHash) };
     }
-    const decoded = decodeLegacyShareCode(code);
-    if (!decoded.ok) return decoded;
-    if (decoded.settings.datasetHash !== datasetHash) return { ok: false, error: 'This share code was made for a different dataset.' };
-    return decoded;
+    if (mode.shareCode.trim() === '') {
+        return {
+            ok: true,
+            settings: {
+                datasetId: dataset.datasetId, contentHash, seed: randomSeed(random),
+                baseSpeed: snapSetting('baseSpeed', mode.baseSpeed), speedInc: snapSetting('speedInc', mode.speedInc),
+                phaseDist: snapSetting('phaseDist', mode.phaseDist),
+            },
+        };
+    }
+    const decoded = decodeShareCode(mode.shareCode);
+    if (!decoded.ok) return { ok: false, error: decoded.error };
+    const s = decoded.settings;
+    if (s.datasetId !== dataset.datasetId) {
+        return { ok: false, error: `This share code was made for ${nameOf(s.datasetId)}, not ${nameOf(dataset.datasetId)}.` };
+    }
+    if (s.contentHash !== contentHash) {
+        return { ok: false, error: 'This share code was made for different data (the dataset changed, or this is another file).' };
+    }
+    return { ok: true, settings: s };
 }

@@ -3,7 +3,9 @@ import type { DatasetSource, LoadProgress } from '../data/sources/types';
 import type { DatasetCache } from '../data/cache';
 import type { CanonicalDataset } from '../data/canonical';
 import type { SentenceData } from '../data/types';
-import type { GameSettings } from '../config/settings';
+import { LOCAL_DATASET_ID, SETTING_RANGES, type GameSettings, type SettingKey } from '../config/settings';
+import { decodeShareCode } from '../config/shareCode';
+import { isoWeekUtc, weekLabel } from '../config/weekly';
 import type { Palette } from '../game/palette';
 import { loadSource } from '../data/sources/cached';
 import { SourceLoadError } from '../data/sources/errors';
@@ -66,7 +68,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
     const select = (id: string) => {
         selectedId = id;
         for (const [sid, { card }] of cards) card.setAttribute('aria-checked', String(sid === id));
-        playBtn.disabled = busy();
+        playBtn.disabled = weeklyBtn.disabled = busy();
     };
     for (const src of sources) {
         const colors = Object.values(src.palette ?? {});
@@ -116,30 +118,50 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
     fileInput.addEventListener('change', () => { const f = fileInput.files?.[0]; if (f && !busy()) readFile(f); fileInput.value = ''; });
 
     // ---- settings ----
-    const slider = (label: string, min: number, max: number, step: number, value: number, suffix = '') => {
-        const out = h('output', { textContent: value + suffix });
-        const input = h('input', { type: 'range', min: String(min), max: String(max), step: String(step), value: String(value), ariaLabel: label } as Partial<HTMLInputElement>);
+    const slider = (label: string, key: SettingKey, suffix = '') => {
+        const r = SETTING_RANGES[key];
+        const out = h('output', { textContent: r.initial + suffix });
+        const input = h('input', { type: 'range', min: String(r.min), max: String(r.max), step: String(r.step), value: String(r.initial), ariaLabel: label } as Partial<HTMLInputElement>);
         input.addEventListener('input', () => { out.textContent = input.value + suffix; });
-        return { input, row: h('label', { class: 'nt-row' }, h('span', { textContent: label }), input, out) };
+        const set = (v: number) => { input.value = String(v); out.textContent = input.value + suffix; };
+        return { input, set, row: h('label', { class: 'nt-row' }, h('span', { textContent: label }), input, out) };
     };
-    const base = slider('Base speed', 0.1, 2.0, 0.1, 0.5);
-    const inc = slider('Speed inc', 0, 1.0, 0.05, 0.15);
-    const phase = slider('Phase dist', 50, 500, 10, 100, 'm');
+    const base = slider('Base speed', 'baseSpeed');
+    const inc = slider('Speed inc', 'speedInc');
+    const phase = slider('Phase dist', 'phaseDist', 'm');
     const code = h('input', { class: 'nt-code', type: 'text', placeholder: 'Paste a share code to replay a run', spellcheck: false });
+    const hint = h('div', { class: 'nt-hint' });
+    hint.setAttribute('aria-live', 'polite');
+    const onCode = () => {
+        hint.className = 'nt-hint';
+        if (code.value.trim() === '') { hint.textContent = ''; return; }
+        const r = decodeShareCode(code.value);
+        if (!r.ok) { hint.textContent = r.error; hint.classList.add('is-error'); return; }
+        const s = r.settings;
+        base.set(s.baseSpeed); inc.set(s.speedInc); phase.set(s.phaseDist);
+        const src = sources.find(x => x.datasetId === s.datasetId);
+        if (src) select(src.id);
+        if (src) hint.textContent = `Replay of ${src.title}, seed ${s.seed}.`;
+        else if (s.datasetId === LOCAL_DATASET_ID) hint.textContent = `Replay of a dropped file, seed ${s.seed}. Drop the same file to play it.`;
+        else { hint.textContent = `This code is for ${s.datasetId}, which is not in this menu.`; hint.classList.add('is-error'); }
+    };
+    code.addEventListener('input', onCode);
     const settings = h('div', { class: 'nt-settings' },
         h('h2', { class: 'nt-h', textContent: 'Difficulty' }), base.row, inc.row, phase.row,
-        h('h2', { class: 'nt-h', textContent: 'Replay a run' }), code);
+        h('h2', { class: 'nt-h', textContent: 'Replay a run' }), code, hint);
 
     // ---- status + actions ----
     const barFill = h('div');
     const bar = h('div', { class: 'nt-bar' }, barFill);
     const statusText = h('div');
     const cancelBtn = h('button', { type: 'button', class: 'nt-btn', textContent: 'Cancel', onclick: () => running?.abort() });
-    const retryBtn = h('button', { type: 'button', class: 'nt-btn', textContent: 'Retry', onclick: () => void playSelected() });
+    const retryBtn = h('button', { type: 'button', class: 'nt-btn', textContent: 'Retry', onclick: () => void playSelected(lastWeekly) });
     const actions = h('div', { class: 'nt-actions' }, cancelBtn, retryBtn);
     const status = h('div', { class: 'nt-status' });
     status.setAttribute('aria-live', 'polite');
-    const playBtn = h('button', { type: 'button', class: 'nt-btn is-primary', textContent: 'Play', onclick: () => void playSelected() });
+    const playBtn = h('button', { type: 'button', class: 'nt-btn is-primary', textContent: 'Play', onclick: () => void playSelected(false) });
+    const weeklyBtn = h('button', { type: 'button', class: 'nt-btn', textContent: `Weekly challenge ${weekLabel(isoWeekUtc(new Date()))}`, onclick: () => void playSelected(true) });
+    let lastWeekly = false;
 
     const busy = () => running !== undefined;
     const show = (kind: 'idle' | 'loading' | 'error', message = '', progress?: LoadProgress) => {
@@ -158,26 +180,41 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
             cancelBtn.hidden = true; retryBtn.hidden = !selectedId || lastWasSource === false;
             status.append(statusText, ...(retryBtn.hidden ? [] : [actions]));
         }
-        playBtn.disabled = busy();
+        playBtn.disabled = weeklyBtn.disabled = busy();
     };
     let lastWasSource = true;
 
     // ---- flow ----
-    function begin(canonical: CanonicalDataset, palette: Palette | undefined) {
-        const built = buildSettings({
-            baseSpeed: parseFloat(base.input.value), speedInc: parseFloat(inc.input.value),
-            phaseDist: parseFloat(phase.input.value), shareCode: code.value,
-        }, canonical.contentHash);
-        if (!built.ok) { lastWasSource = false; show('error', built.error); return; }
+    const fail = (message: string) => { lastWasSource = false; show('error', message); };
+
+    function begin(canonical: CanonicalDataset, palette: Palette | undefined, src: DatasetSource | undefined, weekly: boolean) {
+        const built = buildSettings(
+            weekly ? { kind: 'weekly', now: new Date() }
+                : { kind: 'custom', baseSpeed: parseFloat(base.input.value), speedInc: parseFloat(inc.input.value), phaseDist: parseFloat(phase.input.value), shareCode: code.value },
+            { datasetId: src?.datasetId ?? LOCAL_DATASET_ID, contentHash: canonical.contentHash });
+        if (!built.ok) { fail(built.error); return; }
         if (destroyed) return;
         opts.onStart({ dataset: canonical.sentences, settings: built.settings, palette });
     }
 
-    async function playSelected() {
-        const src = sources.find(s => s.id === selectedId);
-        if (!src || busy()) return;
+    async function playSelected(weekly: boolean) {
+        if (busy()) return;
+        let src = sources.find(s => s.id === selectedId);
+        if (!weekly && code.value.trim() !== '') {
+            // A share code names its dataset: fail fast on a bad code, and load the dataset it belongs to.
+            const r = decodeShareCode(code.value);
+            if (!r.ok) { fail(r.error); return; }
+            src = sources.find(s => s.datasetId === r.settings.datasetId);
+            if (!src) {
+                fail(r.settings.datasetId === LOCAL_DATASET_ID ? 'This code is for a dropped file. Drop that same file to replay it.' : `This code is for ${r.settings.datasetId}, which is not in this menu.`);
+                return;
+            }
+            select(src.id);
+        }
+        if (!src) return;
         resumeAudio(); // browsers need a user gesture before audio may play
         lastWasSource = true;
+        lastWeekly = weekly;
         const ctl = new AbortController();
         running = ctl;
         show('loading');
@@ -185,7 +222,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
             const res = await loadSource(src, cache, { signal: ctl.signal, onProgress: p => { if (!destroyed) show('loading', '', p); } });
             running = undefined;
             void refreshBadges();
-            begin(res.canonical, src.palette);
+            begin(res.canonical, src.palette, src, weekly);
         } catch (e) {
             running = undefined;
             if (destroyed) return;
@@ -202,7 +239,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
         reader.onload = () => {
             try {
                 const loaded = loadDatasetText(String(reader.result));
-                begin(loaded.canonical, undefined);
+                begin(loaded.canonical, undefined, undefined, false);
             } catch (err) {
                 show('error', err instanceof DatasetParseError ? err.message : 'Could not read this file.');
             }
@@ -216,7 +253,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
         h('p', { class: 'nt-tagline', textContent: 'Climb a tower built from text. Land on the entities that hold.' }),
         h('div', {}, h('h2', { class: 'nt-h', textContent: 'Choose a dataset' }), sourceList),
         dropZone, settings, status,
-        h('div', { class: 'nt-actions' }, playBtn));
+        h('div', { class: 'nt-actions' }, playBtn, weeklyBtn));
     overlay.append(panel);
     host.append(overlay);
 

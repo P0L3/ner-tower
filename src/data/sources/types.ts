@@ -33,7 +33,7 @@ export interface LoadedSource {
 export interface DatasetSource {
     /** Stable key, used in URLs and caches: 'clirener-gold'. */
     id: string;
-    /** Identity of the data for share codes and boards (final shape is decided in M4): 'hf:P0L3/...'. */
+    /** Identity of the data in share codes and board keys: the Hub repo name, e.g. 'P0L3/CliReNER_v_1_1_28_SILVER'. */
     datasetId: string;
     title: string;
     description: string;

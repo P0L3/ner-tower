@@ -134,14 +134,14 @@ worker/                    # Cloudflare Worker + D1 schema
 - [x] Difficulty settings (existing sliders) + share-code input carried over
 
 ### M4 — Config identity (#1a)
-- [ ] `datasetId`: `hf:org/name@version[/split]` or `local:<content-hash>`
-- [ ] Versioned, compact share code: `{v, rulesetVersion, datasetId, contentHash, seed, settings}`
-- [ ] Decode with clear errors: unknown version, dataset mismatch, ruleset mismatch
-- [ ] Board key = truncated SHA-256 of the canonical config string
-- [ ] `weekly.ts`: UTC ISO week → seed, fixed settings preset, per-dataset
-- [ ] Menu: "Weekly challenge" button per dataset
-- [ ] "New seed" option on game over (in addition to restart with the same seed)
-- [ ] Tests: encode/decode round trip, week boundaries (UTC), key stability
+- [X] `datasetId`: `hf:org/name@version[/split]` or `local:<content-hash>`
+- [X] Versioned, compact share code: `{v, rulesetVersion, datasetId, contentHash, seed, settings}`
+- [X] Decode with clear errors: unknown version, dataset mismatch, ruleset mismatch
+- [X] Board key = truncated SHA-256 of the canonical config string
+- [X] `weekly.ts`: UTC ISO week → seed, fixed settings preset, per-dataset
+- [X] Menu: "Weekly challenge" button per dataset
+- [X] "New seed" option on game over (in addition to restart with the same seed)
+- [X] Tests: encode/decode round trip, week boundaries (UTC), key stability
 
 ### M5 — Leaderboard (#1b)
 **Backend (`worker/`)**

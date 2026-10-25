@@ -6,7 +6,7 @@ import { fakeDatasetsServer, makeBioRows } from '../hf/fakeServer.testutil';
 import type { LoadProgress } from './types';
 
 const server = (intercept?: Parameters<typeof fakeDatasetsServer>[1]) => fakeDatasetsServer({
-    dataset: clirenerGold.datasetId.slice(3),
+    dataset: clirenerGold.datasetId,
     splits: { train: makeBioRows(150, 1, 'a'), validation: makeBioRows(21, 2, 'b'), test: makeBioRows(21, 3, 'c') },
 }, intercept);
 const noSleep = () => Promise.resolve();

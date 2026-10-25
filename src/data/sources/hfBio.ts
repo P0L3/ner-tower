@@ -30,7 +30,7 @@ export function hfBioSource(cfg: HfBioSourceConfig): DatasetSource {
 
     return {
         id: cfg.id,
-        datasetId: `hf:${cfg.repo}`,
+        datasetId: cfg.repo,
         title: cfg.title,
         description: cfg.description,
         license: cfg.license,

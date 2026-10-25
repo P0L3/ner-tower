@@ -43,8 +43,8 @@ export const mySource = hfBioSource({
     title: 'My Dataset',
     description: 'One line for the picker.',
     license: 'CC BY 4.0',             // shown as attribution
-    version: '1.0',
-    repo: 'org/dataset-name',         // Hub repo
+    version: '1.0',                   // cache key; bump when the upstream data changes
+    repo: 'org/dataset-name',         // Hub repo; also the dataset's id in share codes and boards
     palette: { PER: 0xff8800 },       // optional; other labels get generated colors
     expectedRows: 1234,               // what the authors report; lets the live test notice drift
 });
@@ -59,3 +59,5 @@ Rows go through `canonicalize`, so sources never worry about ordering, duplicate
 spans. Tests use a fake viewer server (`src/data/hf/fakeServer.testutil.ts`), so they run offline.
 
 The leaderboard backend is documented here when it lands.
+
+Share codes, board keys and the weekly challenge are documented in [docs/BOARDS.md](docs/BOARDS.md).
