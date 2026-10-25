@@ -4,7 +4,7 @@ import type { GameSettings } from '../../config/settings';
 import { PHYSICS, COMBO, CAMERA } from '../../config/ruleset';
 import { seededRandom } from '../../core/rng';
 import { zzfx, sndJump, sndLand, sndCombo, sndPhase, sndOver } from '../../core/audio';
-import { buildColorMap } from '../palette';
+import { buildColorMap, type Palette } from '../palette';
 import { TowerPlanner } from '../tower';
 import { phaseAt, unstableLabelsAt } from '../phases';
 import { jumpVelocity, nextCameraY, scoreAtY, hasFallenOut } from '../movement';
@@ -15,6 +15,7 @@ export class GameScene extends Phaser.Scene {
     private dataset!: SentenceData[];
     private entityStats!: EntityStats[];
     private settings!: GameSettings;
+    private palette: Palette | undefined;
     private planner!: TowerPlanner;
     private labelOrder: string[] = [];
     private streamer!: TowerStreamer;
@@ -45,8 +46,9 @@ export class GameScene extends Phaser.Scene {
 
     constructor() { super('GameScene'); }
 
-    init(data: { dataset: SentenceData[], entityStats: EntityStats[], settings: GameSettings }) {
+    init(data: { dataset: SentenceData[], entityStats: EntityStats[], settings: GameSettings, palette?: Palette }) {
         this.dataset = data.dataset;
+        this.palette = data.palette;
         this.entityStats = data.entityStats;
         this.settings = data.settings;
         this.labelOrder = this.entityStats.map(s => s.label);
@@ -78,7 +80,7 @@ export class GameScene extends Phaser.Scene {
         const ground = this.add.rectangle(PHYSICS.worldWidth / 2, PHYSICS.groundY, PHYSICS.worldWidth, PHYSICS.groundHeight, 0x333333);
         this.platforms.add(ground);
 
-        this.colorMap = buildColorMap(this.entityStats);
+        this.colorMap = buildColorMap(this.entityStats, this.palette);
 
         // Tower: built lazily within a per-frame budget; the first screenful is built right now.
         this.streamer = new TowerStreamer(this.planner, placed => new SentenceView({
@@ -220,7 +222,7 @@ export class GameScene extends Phaser.Scene {
             cam.scrollY = this.cameraY;
             if (hasFallenOut(this.player.y, cam.scrollY, cam.height)) {
                 zzfx(...sndOver); // Sound: Game Over
-                this.scene.start('GameOverScene', { height: this.maxHeightReached, dataset: this.dataset, entityStats: this.entityStats, settings: this.settings });
+                this.scene.start('GameOverScene', { height: this.maxHeightReached, dataset: this.dataset, entityStats: this.entityStats, settings: this.settings, palette: this.palette });
             }
         }
 

@@ -1,0 +1,59 @@
+/* Menu overlay. Sits on top of the game canvas; removed when a run starts. */
+.nt-overlay {
+    position: absolute; z-index: 10; box-sizing: border-box; overflow-y: auto;
+    display: flex; justify-content: center; padding: 28px 20px;
+    background: #1a1a1a; color: #e6e6e6; font-family: monospace; font-size: 14px; line-height: 1.45;
+}
+.nt-overlay * { box-sizing: border-box; }
+.nt-panel { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 18px; }
+.nt-title { margin: 0; font-size: 44px; letter-spacing: 0.04em; color: #fff; }
+.nt-tagline { margin: -10px 0 0; color: #8d8d8d; }
+.nt-h { margin: 0 0 8px; font-size: 15px; font-weight: bold; color: #fff; }
+
+.nt-sources { display: flex; flex-direction: column; gap: 10px; }
+.nt-card {
+    position: relative; padding: 14px 14px 12px; background: #242424; border: 2px solid #333; cursor: pointer;
+}
+.nt-card:hover { border-color: #5a5a5a; }
+.nt-card[aria-checked="true"] { border-color: #fff; background: #2b2b2b; }
+.nt-strip { display: flex; height: 6px; margin: -14px -14px 10px; }
+.nt-strip span { flex: 1; }
+.nt-card-title { font-weight: bold; color: #fff; font-size: 16px; }
+.nt-card-desc { margin: 4px 0 8px; color: #b4b4b4; }
+.nt-card-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: #8d8d8d; font-size: 12px; }
+.nt-card-meta a { color: #7fb8ff; }
+.nt-badge { margin-left: auto; color: #6fdc8c; }
+
+.nt-drop {
+    padding: 14px; border: 2px dashed #444; color: #a0a0a0; text-align: center;
+}
+.nt-drop.is-over { border-color: #6fdc8c; color: #6fdc8c; }
+.nt-drop input { display: none; }
+.nt-link { background: none; border: 0; padding: 0; font: inherit; color: #7fb8ff; text-decoration: underline; cursor: pointer; }
+
+.nt-settings { display: flex; flex-direction: column; gap: 8px; }
+.nt-row { display: grid; grid-template-columns: 96px 1fr 52px; align-items: center; gap: 10px; }
+.nt-row output { text-align: right; color: #fff; }
+.nt-row input[type="range"] { width: 100%; accent-color: #fff; }
+.nt-code { width: 100%; padding: 6px 8px; background: #111; color: #fff; border: 1px solid #555; font: inherit; }
+
+.nt-status { min-height: 44px; display: flex; flex-direction: column; gap: 6px; }
+.nt-bar { height: 8px; background: #333; overflow: hidden; }
+.nt-bar > div { height: 100%; width: 0; background: #fff; transition: width 0.15s linear; }
+.nt-bar.is-indeterminate > div { width: 30%; animation: nt-slide 1s ease-in-out infinite alternate; }
+@keyframes nt-slide { from { margin-left: 0; } to { margin-left: 70%; } }
+.nt-error { color: #ff6b6b; }
+.nt-actions { display: flex; gap: 10px; }
+
+.nt-btn {
+    padding: 9px 18px; background: #333; color: #fff; border: 2px solid #555; font: inherit; font-weight: bold; cursor: pointer;
+}
+.nt-btn:hover:not(:disabled) { border-color: #fff; }
+.nt-btn:disabled { opacity: 0.45; cursor: default; }
+.nt-btn.is-primary { background: #fff; color: #111; border-color: #fff; }
+
+.nt-overlay :focus-visible { outline: 3px solid #7fb8ff; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+    .nt-bar > div { transition: none; }
+    .nt-bar.is-indeterminate > div { animation: none; width: 100%; opacity: 0.5; }
+}

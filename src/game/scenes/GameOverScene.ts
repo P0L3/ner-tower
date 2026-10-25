@@ -1,16 +1,20 @@
 import * as Phaser from 'phaser';
 import type { SentenceData, EntityStats } from '../../data/types';
 import type { GameSettings } from '../../config/settings';
+import { encodeLegacyShareCode } from '../../config/legacyShareCode';
+import type { Palette } from '../palette';
 
 export class GameOverScene extends Phaser.Scene {
     private finalHeight = 0;
     private dataset!: SentenceData[];
     private entityStats!: EntityStats[];
     private settings!: GameSettings;
+    private palette: Palette | undefined;
 
     constructor() { super('GameOverScene'); }
 
-    init(data: { height: number, dataset: SentenceData[], entityStats: EntityStats[], settings: GameSettings }) {
+    init(data: { height: number, dataset: SentenceData[], entityStats: EntityStats[], settings: GameSettings, palette?: Palette }) {
+        this.palette = data.palette;
         this.finalHeight = data.height;
         this.dataset = data.dataset;
         this.entityStats = data.entityStats;
@@ -22,7 +26,7 @@ export class GameOverScene extends Phaser.Scene {
         this.add.text(425, 280, `Score: ${this.finalHeight}m`, { fontSize: '32px', color: '#ffffff' }).setOrigin(0.5);
 
         // Generate the shareable seed string
-        const seedStr = btoa(`${this.settings.datasetHash}|${this.settings.seed}|${this.settings.baseSpeed}|${this.settings.speedInc}|${this.settings.phaseDist}`);
+        const seedStr = encodeLegacyShareCode(this.settings);
 
         const shareCodeText = this.add.text(425, 380, `Share Code (Click to Copy):\n\n${seedStr}`, {
             fontSize: '18px', color: '#00ffff', align: 'center', backgroundColor: '#222', padding: {x: 10, y: 10}
@@ -38,7 +42,7 @@ export class GameOverScene extends Phaser.Scene {
         this.add.text(425, 520, 'Press "R" to Restart\nPress "N" for New File', { fontSize: '24px', color: '#ffffff', align: 'center' }).setOrigin(0.5);
 
         this.input.keyboard!.once('keydown-R', () => {
-            this.scene.start('GameScene', { dataset: this.dataset, entityStats: this.entityStats, settings: this.settings });
+            this.scene.start('GameScene', { dataset: this.dataset, entityStats: this.entityStats, settings: this.settings, palette: this.palette });
         });
 
         this.input.keyboard!.once('keydown-N', () => {

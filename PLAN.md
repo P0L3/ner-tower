@@ -127,11 +127,11 @@ worker/                    # Cloudflare Worker + D1 schema
 - [X] Cap on loaded sentences (configurable, a few thousand) with deterministic selection
 
 **Menu (DOM)**
-- [ ] Dataset picker (curated list) as the default screen
+- [X] Dataset picker (curated list) as the default screen
 - [ ] "Paste Hugging Face dataset ID" box (best-effort, uses generic HF path where possible)
-- [ ] Drag & drop as secondary option
-- [ ] Loading progress bar, retry on failure, offline use of cached data
-- [ ] Difficulty settings (existing sliders) + share-code input carried over
+- [X] Drag & drop as secondary option
+- [x] Loading progress bar, retry on failure, offline use of cached data
+- [x] Difficulty settings (existing sliders) + share-code input carried over
 
 ### M4 — Config identity (#1a)
 - [ ] `datasetId`: `hf:org/name@version[/split]` or `local:<content-hash>`
