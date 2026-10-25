@@ -11,7 +11,7 @@ Status legend: `[ ]` todo · `[x]` done · 🔒 = affects tower generation (must
 | Distribution | Standalone single-file build (Vite + singlefile), no Python, no server required to play |
 | Default data source | Curated Hugging Face datasets (public); drag & drop as the secondary option |
 | Dataset loading | One small **source module per curated dataset**; generic **format parsers** for drag & drop |
-| Datasets (initial) | `P0L3/CliReNER_v_1_1_28_GOLD`, `P0L3/CliReNER_v_1_1_28_SILVER`, `zj88zj/SCIERC` (more added over time) |
+| Datasets | `P0L3/CliReNER_v_1_1_28_GOLD`, `P0L3/CliReNER_v_1_1_28_SILVER` (more added over time). SciERC was dropped: no adapter planned |
 | Leaderboard board key | **Exact seed + settings (share code)** → implicit board per code |
 | Weekly challenge | Client-derived: seed = `hash(UTC ISO week, datasetId)`, fixed settings preset, one board per dataset per week |
 | Anti-cheat | Honor system + payload validation + rate limiting. Replay verification = future work |
@@ -43,7 +43,7 @@ src/
     types.ts               # canonical SentenceData (+ optional meta)
     canonical.ts           # deterministic normalization, filtering, content hash
     formats/               # drag & drop: canonical-json · jsonl · conll
-    sources/               # curated: clirener-gold · clirener-silver · scierc · index
+    sources/               # curated: clirener-gold · clirener-silver · index
     cache.ts               # IndexedDB cache
     profile.ts             # entity stats / hardness
   game/
@@ -106,7 +106,7 @@ worker/                    # Cloudflare Worker + D1 schema
 **Core**
 - [X] Canonical `SentenceData` type with optional `meta`
 - [X] `canonical.ts`: fixed ordering, validation (indices vs tokens, overlapping spans), filtering, SHA-256 content hash
-- [ ] IndexedDB cache keyed by `datasetId@version`
+- [x] IndexedDB cache keyed by `datasetId@version`
 - [X] `profile.ts` extracted from the menu scene
 
 **Generic formats (drag & drop)**
@@ -121,7 +121,7 @@ worker/                    # Cloudflare Worker + D1 schema
 - [x] Source interface (`DatasetSource`: id, datasetId, title, description, license, url, version, palette?, `load({onProgress, signal, maxSentences})`); HF dataset viewer client with paging, retries, abort, split discovery
 - [x] `clirener-gold.ts` (incl. CliReNER palette; all splits combined, 192 sentences)
 - [x] `clirener-silver.ts` (1,027 sentences)
-- [ ] `scierc.ts` (document-level span offsets → sentence-level)
+- ~~`scierc.ts`~~ dropped (decision: not planned)
 - [x] Per-source smoke test against the live endpoint (separate `npm run test:live`, not in CI default)
 - [X] First live run of `npm run test:live` on a machine with network: confirms real schema, row counts and the CORS header
 - [X] Cap on loaded sentences (configurable, a few thousand) with deterministic selection
@@ -145,30 +145,30 @@ worker/                    # Cloudflare Worker + D1 schema
 
 ### M5 — Leaderboard (#1b)
 **Backend (`worker/`)**
-- [X] D1 schema: `scores(board_key, player_id, nickname, score, created_at)`, unique `(board_key, player_id)` keeping the best score
-- [X] `POST /scores` — validate payload shape, nickname length, plausible score bounds, per-IP rate limit
-- [X] `GET /boards/:key?limit=` — top N
-- [X] CORS configured (incl. `null` origin for local file usage)
-- [X] Deploy docs (wrangler steps, free-tier notes)
+- [x] D1 schema: `scores(board_key, player_id, nickname, score, created_at)`, unique `(board_key, player_id)` keeping the best score
+- [x] `POST /scores` — validate payload shape, nickname length, plausible score bounds, per-IP rate limit
+- [x] `GET /boards/:key?limit=` — top N
+- [x] CORS configured (incl. `null` origin for local file usage)
+- [x] Deploy docs (wrangler steps, free-tier notes)
 
 **Client**
-- [X] Build-time `VITE_LEADERBOARD_URL`; absent → leaderboard UI hidden
-- [X] Anonymous player ID in localStorage + editable nickname
-- [X] Submit on game over (never blocks gameplay; failures are silent/retryable)
-- [X] Board view: top N, your rank, per-code board
-- [X] Weekly tab per dataset
-- [X] "Open board for a pasted code"
+- [x] Build-time `VITE_LEADERBOARD_URL`; absent → leaderboard UI hidden
+- [x] Anonymous player ID in localStorage + editable nickname
+- [x] Submit on game over (never blocks gameplay; failures are silent/retryable)
+- [x] Board view: top N, your rank, per-code board
+- [x] Weekly tab per dataset
+- [x] "Open board for a pasted code"
 
 ### M6 — Style pass (#4)
-- [ ] Scale canvas responsively (Phaser Scale FIT) and anchor DOM overlay to the canvas
-- [ ] HUD / menu / game-over polish
+- [x] Scale canvas responsively (Phaser Scale FIT) and anchor DOM overlay to the canvas (overlays keep their design size and are scaled with a CSS transform: `ui/dom.ts`)
+- [ ] HUD / menu / game-over polish (waiting for the list below)
 - [ ] Items from your list (to be provided)
 
 ### M7 — Open-source polish
-- [ ] Rewrite README (remove personal roadmap notes; document datasets, share codes, weekly challenge, leaderboard setup)
+- [x] Rewrite README (remove personal roadmap notes; document datasets, share codes, weekly challenge, leaderboard setup)
 - [ ] `LICENSE`
 - [ ] `.gitignore` incl. `public/assets/player/*`
-- [ ] `CONTRIBUTING.md`: how to add a dataset source, ruleset-version rule
+- [x] `CONTRIBUTING.md`: how to add a dataset source, ruleset-version rule
 - [ ] GitHub Actions: build + test; deploy to Pages (or static HF Space)
 - [ ] Tiny sample dataset in the repo for first-run demo
 - [ ] Dataset license/attribution shown in the picker

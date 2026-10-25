@@ -13,7 +13,8 @@ import { loadDatasetText } from '../data/load';
 import { DatasetParseError } from '../data/formats/index';
 import { resumeAudio } from '../core/audio';
 import { buildSettings, describeBoard, describeProgress, sizeLabel } from './menuLogic';
-import { h } from './dom';
+import { h, pinToCanvas } from './dom';
+import { GAME_WIDTH, GAME_HEIGHT } from '../config/view';
 import { mountBoard, type BoardViewHandle } from './boardView';
 import { boardKey } from '../config/board';
 import { NICKNAME_MAX } from '../leaderboard/protocol';
@@ -44,7 +45,6 @@ const hex = (n: number) => '#' + n.toString(16).padStart(6, '0');
 export function mountMenu(opts: MenuOptions): MenuHandle {
     const { canvas, sources, cache } = opts;
     const lb = opts.leaderboard;
-    const host = canvas.parentElement ?? document.body;
     let destroyed = false;
     let selectedId = sources[0]?.id;
     let running: AbortController | undefined;
@@ -52,16 +52,8 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
     const syncBusy = () => { for (const b of gated) b.disabled = running !== undefined; };
     let boardModal: { el: HTMLElement; handle: BoardViewHandle } | undefined;
 
-    // ---- layout: pinned to the canvas, follows resizes ----
+    // ---- layout: pinned to the canvas (scaled with it), see pinToCanvas ----
     const overlay = h('div', { class: 'nt-overlay' });
-    const place = () => {
-        overlay.style.left = `${canvas.offsetLeft}px`;
-        overlay.style.top = `${canvas.offsetTop}px`;
-        overlay.style.width = `${canvas.clientWidth}px`;
-        overlay.style.height = `${canvas.clientHeight}px`;
-    };
-    place();
-    window.addEventListener('resize', place);
 
     // ---- dataset cards ----
     const cards = new Map<string, { card: HTMLElement; badge: HTMLElement }>();
@@ -321,7 +313,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
         h('div', { class: 'nt-actions' }, playBtn, weeklyBtn),
         ...(lb ? [h('div', { class: 'nt-actions' }, weeklyBoardBtn)] : []));
     overlay.append(panel);
-    host.append(overlay);
+    const unpin = pinToCanvas(canvas, overlay, { x: 0, y: 0, w: GAME_WIDTH, h: GAME_HEIGHT });
 
     if (selectedId) select(selectedId); else playBtn.disabled = true;
     void refreshBadges();
@@ -332,8 +324,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
             destroyed = true;
             running?.abort();
             closeBoard();
-            window.removeEventListener('resize', place);
-            overlay.remove();
+            unpin();
         },
     };
 }
