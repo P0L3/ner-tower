@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "analyze": "tsx tools/analyze.ts"
+    "analyze": "tsx tools/analyze.ts",
+    "test:live": "vitest run --config vitest.live.config.ts"
   },
   "devDependencies": {
     "tsx": "^4.23.15",

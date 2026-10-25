@@ -1,4 +1,5 @@
-import type { SentenceData, EntitySpan } from '../types';
+import type { SentenceData } from '../types';
+import { bioTagsToSpans } from './bio';
 import { DatasetParseError, preview } from './errors';
 
 /** A valid last column: outside, or begin/inside with a non-empty label (IOB1 and IOB2). */
@@ -17,25 +18,7 @@ export function parseCoNLL(text: string): SentenceData[] {
 
     const commitSentence = () => {
         if (currentTokens.length > 0) {
-            const ner: EntitySpan[] = [];
-            let start = -1, label = "";
-
-            for (let i = 0; i < currentTags.length; i++) {
-                const tag = currentTags[i];
-                if (tag.startsWith('B-')) {
-                    if (start !== -1) ner.push([start, i - 1, label]);
-                    start = i; label = tag.substring(2);
-                } else if (tag.startsWith('I-')) {
-                    if (start === -1) { start = i; label = tag.substring(2); }
-                    else if (label !== tag.substring(2)) {
-                        ner.push([start, i - 1, label]);
-                        start = i; label = tag.substring(2);
-                    }
-                } else {
-                    if (start !== -1) { ner.push([start, i - 1, label]); start = -1; label = ""; }
-                }
-            }
-            if (start !== -1) ner.push([start, currentTags.length - 1, label]);
+            const ner = bioTagsToSpans(currentTags);
             dataset.push({ text: currentTokens.join(" "), tokenized_text: currentTokens, ner: ner });
             currentTokens = []; currentTags = [];
         }

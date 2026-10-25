@@ -118,11 +118,12 @@ worker/                    # Cloudflare Worker + D1 schema
 - [X] Unit tests with fixtures per format
 
 **Curated sources (one file each)**
-- [ ] Source interface: `id, title, description, license, version, palette?, load(onProgress)`
-- [ ] `clirener-gold.ts` (incl. CliReNER palette)
-- [ ] `clirener-silver.ts`
+- [x] Source interface (`DatasetSource`: id, datasetId, title, description, license, url, version, palette?, `load({onProgress, signal, maxSentences})`); HF dataset viewer client with paging, retries, abort, split discovery
+- [x] `clirener-gold.ts` (incl. CliReNER palette; all splits combined, 192 sentences)
+- [x] `clirener-silver.ts` (1,027 sentences)
 - [ ] `scierc.ts` (document-level span offsets → sentence-level)
-- [ ] Per-source smoke test against the live endpoint (separate `npm run test:live`, not in CI default)
+- [x] Per-source smoke test against the live endpoint (separate `npm run test:live`, not in CI default)
+- [X] First live run of `npm run test:live` on a machine with network: confirms real schema, row counts and the CORS header
 - [X] Cap on loaded sentences (configurable, a few thousand) with deterministic selection
 
 **Menu (DOM)**
