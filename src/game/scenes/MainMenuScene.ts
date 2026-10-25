@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { profileEntities } from '../../data/profile';
 import { SOURCES } from '../../data/sources/index';
 import { createDefaultCache } from '../../data/cache';
+import { getLeaderboard } from '../../leaderboard/index';
 import { mountMenu, type MenuHandle, type StartPayload } from '../../ui/menu';
 
 /** Thin on purpose: the menu is a DOM overlay (src/ui/menu.ts); this scene only hosts it. */
@@ -15,6 +16,7 @@ export class MainMenuScene extends Phaser.Scene {
             canvas: this.game.canvas,
             sources: SOURCES,
             cache: createDefaultCache(),
+            leaderboard: getLeaderboard(),
             onStart: payload => this.startGame(payload),
         });
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.closeMenu());

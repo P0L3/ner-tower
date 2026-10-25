@@ -38,3 +38,19 @@ configuration, and it is simply an ordinary board.
 - Narrowing `SETTING_RANGES` or moving its grid makes old codes unreadable. Widening is safe.
 - Changing `WEEKLY_PRESET` should happen at a week boundary: clients on different builds would
   otherwise disagree about the current week for a few days.
+
+## Leaderboard (M5)
+
+The server side lives in [worker/](../worker/README.md); the wire format in
+`src/leaderboard/protocol.ts` (shared by game and Worker, so validation cannot drift apart).
+
+- **When scores are sent:** automatically at game over. The first time, the game asks for a
+  nickname and sends the score right after; later runs need no interaction. The nickname can be
+  changed in the menu.
+- **Never lost, never blocking:** every score first goes into a local outbox (best per board). If
+  the leaderboard is unreachable it stays there and is retried at the next game over, or when the menu opens.
+  Scores waiting for a nickname are sent as soon as one is saved.
+- **Where to see boards:** on the game over screen (top 10 plus your exact rank), in the menu
+  ("Weekly leaderboard" for the selected dataset, and "View the leaderboard for this code" after
+  pasting a share code).
+- **No URL, no leaderboard:** without `VITE_LEADERBOARD_URL` at build time none of this is shown.

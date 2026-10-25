@@ -12,7 +12,12 @@ import { SourceLoadError } from '../data/sources/errors';
 import { loadDatasetText } from '../data/load';
 import { DatasetParseError } from '../data/formats/index';
 import { resumeAudio } from '../core/audio';
-import { buildSettings, describeProgress, sizeLabel } from './menuLogic';
+import { buildSettings, describeBoard, describeProgress, sizeLabel } from './menuLogic';
+import { h } from './dom';
+import { mountBoard, type BoardViewHandle } from './boardView';
+import { boardKey } from '../config/board';
+import { NICKNAME_MAX } from '../leaderboard/protocol';
+import type { Leaderboard } from '../leaderboard/service';
 
 /** Everything the game needs to start a run. */
 export interface StartPayload {
@@ -28,28 +33,24 @@ export interface MenuOptions {
     sources: readonly DatasetSource[];
     cache: DatasetCache;
     onStart(payload: StartPayload): void;
+    /** Absent in builds without a leaderboard URL: then nothing leaderboard related is shown. */
+    leaderboard?: Leaderboard;
 }
 
 export interface MenuHandle { destroy(): void }
-
-type El<K extends keyof HTMLElementTagNameMap> = HTMLElementTagNameMap[K];
-
-function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<El<K>> & { class?: string } = {}, ...children: (Node | string)[]): El<K> {
-    const { class: cls, ...rest } = props;
-    const el = Object.assign(document.createElement(tag), rest);
-    if (cls) el.className = cls;
-    el.append(...children);
-    return el;
-}
 
 const hex = (n: number) => '#' + n.toString(16).padStart(6, '0');
 
 export function mountMenu(opts: MenuOptions): MenuHandle {
     const { canvas, sources, cache } = opts;
+    const lb = opts.leaderboard;
     const host = canvas.parentElement ?? document.body;
     let destroyed = false;
     let selectedId = sources[0]?.id;
     let running: AbortController | undefined;
+    let gated: HTMLButtonElement[] = [];
+    const syncBusy = () => { for (const b of gated) b.disabled = running !== undefined; };
+    let boardModal: { el: HTMLElement; handle: BoardViewHandle } | undefined;
 
     // ---- layout: pinned to the canvas, follows resizes ----
     const overlay = h('div', { class: 'nt-overlay' });
@@ -68,7 +69,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
     const select = (id: string) => {
         selectedId = id;
         for (const [sid, { card }] of cards) card.setAttribute('aria-checked', String(sid === id));
-        playBtn.disabled = weeklyBtn.disabled = busy();
+        syncBusy();
     };
     for (const src of sources) {
         const colors = Object.values(src.palette ?? {});
@@ -132,11 +133,14 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
     const code = h('input', { class: 'nt-code', type: 'text', placeholder: 'Paste a share code to replay a run', spellcheck: false });
     const hint = h('div', { class: 'nt-hint' });
     hint.setAttribute('aria-live', 'polite');
+    const codeBoardBtn = h('button', { type: 'button', class: 'nt-link', textContent: 'View the leaderboard for this code', hidden: true, onclick: () => openCodeBoard() });
     const onCode = () => {
         hint.className = 'nt-hint';
+        codeBoardBtn.hidden = true;
         if (code.value.trim() === '') { hint.textContent = ''; return; }
         const r = decodeShareCode(code.value);
         if (!r.ok) { hint.textContent = r.error; hint.classList.add('is-error'); return; }
+        codeBoardBtn.hidden = lb === undefined;
         const s = r.settings;
         base.set(s.baseSpeed); inc.set(s.speedInc); phase.set(s.phaseDist);
         const src = sources.find(x => x.datasetId === s.datasetId);
@@ -146,22 +150,41 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
         else { hint.textContent = `This code is for ${s.datasetId}, which is not in this menu.`; hint.classList.add('is-error'); }
     };
     code.addEventListener('input', onCode);
+    // Nickname for the leaderboards (only when this build has a leaderboard)
+    const nick = h('input', { class: 'nt-code', type: 'text', maxLength: NICKNAME_MAX, placeholder: 'Your name on the leaderboards', spellcheck: false, value: lb?.player.nickname ?? '' });
+    nick.setAttribute('aria-label', 'Nickname');
+    const nickHint = h('div', { class: 'nt-hint' });
+    const saveNickname = () => {
+        if (!lb || nick.value.trim() === '') return;
+        const saved = lb.player.setNickname(nick.value);
+        nickHint.className = 'nt-hint' + (saved === undefined ? ' is-error' : '');
+        if (saved === undefined) { nickHint.textContent = `Use 1 to ${NICKNAME_MAX} characters.`; return; }
+        nick.value = saved;
+        nickHint.textContent = 'Saved.';
+        lb.promptDeclined = false;
+        void lb.flush(); // sends scores that were waiting for a nickname
+    };
+    nick.addEventListener('change', saveNickname);
+    nick.addEventListener('keydown', e => { if (e.key === 'Enter') saveNickname(); });
     const settings = h('div', { class: 'nt-settings' },
+        ...(lb ? [h('h2', { class: 'nt-h', textContent: 'Your name' }), nick, nickHint] : []),
         h('h2', { class: 'nt-h', textContent: 'Difficulty' }), base.row, inc.row, phase.row,
-        h('h2', { class: 'nt-h', textContent: 'Replay a run' }), code, hint);
+        h('h2', { class: 'nt-h', textContent: 'Replay a run' }), code, hint, codeBoardBtn);
 
     // ---- status + actions ----
     const barFill = h('div');
     const bar = h('div', { class: 'nt-bar' }, barFill);
     const statusText = h('div');
     const cancelBtn = h('button', { type: 'button', class: 'nt-btn', textContent: 'Cancel', onclick: () => running?.abort() });
-    const retryBtn = h('button', { type: 'button', class: 'nt-btn', textContent: 'Retry', onclick: () => void playSelected(lastWeekly) });
+    let retry: () => void = () => {};
+    const retryBtn = h('button', { type: 'button', class: 'nt-btn', textContent: 'Retry', onclick: () => retry() });
     const actions = h('div', { class: 'nt-actions' }, cancelBtn, retryBtn);
     const status = h('div', { class: 'nt-status' });
     status.setAttribute('aria-live', 'polite');
     const playBtn = h('button', { type: 'button', class: 'nt-btn is-primary', textContent: 'Play', onclick: () => void playSelected(false) });
     const weeklyBtn = h('button', { type: 'button', class: 'nt-btn', textContent: `Weekly challenge ${weekLabel(isoWeekUtc(new Date()))}`, onclick: () => void playSelected(true) });
-    let lastWeekly = false;
+    const weeklyBoardBtn = h('button', { type: 'button', class: 'nt-btn', textContent: 'Weekly leaderboard', onclick: () => void openWeeklyBoard() });
+    gated = [playBtn, weeklyBtn, ...(lb ? [weeklyBoardBtn] : [])];
 
     const busy = () => running !== undefined;
     const show = (kind: 'idle' | 'loading' | 'error', message = '', progress?: LoadProgress) => {
@@ -180,7 +203,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
             cancelBtn.hidden = true; retryBtn.hidden = !selectedId || lastWasSource === false;
             status.append(statusText, ...(retryBtn.hidden ? [] : [actions]));
         }
-        playBtn.disabled = weeklyBtn.disabled = busy();
+        syncBusy();
     };
     let lastWasSource = true;
 
@@ -195,6 +218,29 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
         if (!built.ok) { fail(built.error); return; }
         if (destroyed) return;
         opts.onStart({ dataset: canonical.sentences, settings: built.settings, palette });
+    }
+
+    /** Loads a source (cache first) with progress, cancel and retry. Resolves to undefined if it failed or was cancelled. */
+    async function loadSelected(src: DatasetSource): Promise<CanonicalDataset | undefined> {
+        resumeAudio(); // browsers need a user gesture before audio may play
+        lastWasSource = true;
+        const ctl = new AbortController();
+        running = ctl;
+        show('loading');
+        try {
+            const res = await loadSource(src, cache, { signal: ctl.signal, onProgress: p => { if (!destroyed) show('loading', '', p); } });
+            running = undefined;
+            void refreshBadges();
+            if (!destroyed) show('idle');
+            return res.canonical;
+        } catch (e) {
+            running = undefined;
+            if (destroyed) return undefined;
+            if (e instanceof SourceLoadError && e.kind === 'aborted') { show('idle'); return undefined; }
+            const msg = e instanceof SourceLoadError ? e.message : 'Could not load this dataset.';
+            show('error', e instanceof SourceLoadError && e.kind === 'network' ? `${msg} Once a dataset has loaded, it works offline.` : msg);
+            return undefined;
+        }
     }
 
     async function playSelected(weekly: boolean) {
@@ -212,24 +258,43 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
             select(src.id);
         }
         if (!src) return;
-        resumeAudio(); // browsers need a user gesture before audio may play
-        lastWasSource = true;
-        lastWeekly = weekly;
-        const ctl = new AbortController();
-        running = ctl;
-        show('loading');
-        try {
-            const res = await loadSource(src, cache, { signal: ctl.signal, onProgress: p => { if (!destroyed) show('loading', '', p); } });
-            running = undefined;
-            void refreshBadges();
-            begin(res.canonical, src.palette, src, weekly);
-        } catch (e) {
-            running = undefined;
-            if (destroyed) return;
-            if (e instanceof SourceLoadError && e.kind === 'aborted') { show('idle'); return; }
-            const msg = e instanceof SourceLoadError ? e.message : 'Could not load this dataset.';
-            show('error', e instanceof SourceLoadError && e.kind === 'network' ? `${msg} Once a dataset has loaded, it works offline.` : msg);
-        }
+        retry = () => void playSelected(weekly);
+        const canonical = await loadSelected(src);
+        if (canonical && !destroyed) begin(canonical, src.palette, src, weekly);
+    }
+
+    // ---- leaderboards ----
+    function closeBoard() { boardModal?.handle.destroy(); boardModal?.el.remove(); boardModal = undefined; }
+
+    function openBoard(s: GameSettings) {
+        if (!lb) return;
+        closeBoard();
+        const { title, subtitle } = describeBoard(s, id => sources.find(x => x.datasetId === id)?.title);
+        const body = h('div', { class: 'nt-modal-body' });
+        const closeBtn = h('button', { type: 'button', class: 'nt-btn', textContent: 'Close', onclick: closeBoard });
+        const el = h('div', { class: 'nt-modal' }, body, h('div', { class: 'nt-actions' }, closeBtn));
+        el.setAttribute('role', 'dialog');
+        el.setAttribute('aria-modal', 'true');
+        el.addEventListener('keydown', e => { if (e.key === 'Escape') closeBoard(); });
+        overlay.append(el);
+        boardModal = { el, handle: mountBoard(body, { leaderboard: lb, boardKey: boardKey(s), title, subtitle, limit: 10 }) };
+        closeBtn.focus();
+    }
+
+    /** The weekly board needs the dataset's content hash, so the dataset is loaded first (instant when cached). */
+    async function openWeeklyBoard() {
+        const src = sources.find(s => s.id === selectedId);
+        if (busy() || !lb || !src) return;
+        retry = () => void openWeeklyBoard();
+        const canonical = await loadSelected(src);
+        if (!canonical || destroyed) return;
+        const built = buildSettings({ kind: 'weekly', now: new Date() }, { datasetId: src.datasetId, contentHash: canonical.contentHash });
+        if (built.ok) openBoard(built.settings);
+    }
+
+    function openCodeBoard() {
+        const r = decodeShareCode(code.value);
+        if (r.ok) openBoard(r.settings);
     }
 
     function readFile(file: File) {
@@ -253,17 +318,20 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
         h('p', { class: 'nt-tagline', textContent: 'Climb a tower built from text. Land on the entities that hold.' }),
         h('div', {}, h('h2', { class: 'nt-h', textContent: 'Choose a dataset' }), sourceList),
         dropZone, settings, status,
-        h('div', { class: 'nt-actions' }, playBtn, weeklyBtn));
+        h('div', { class: 'nt-actions' }, playBtn, weeklyBtn),
+        ...(lb ? [h('div', { class: 'nt-actions' }, weeklyBoardBtn)] : []));
     overlay.append(panel);
     host.append(overlay);
 
     if (selectedId) select(selectedId); else playBtn.disabled = true;
     void refreshBadges();
+    if (lb && lb.player.nickname !== undefined) void lb.flush(); // retry scores that could not be sent earlier
 
     return {
         destroy() {
             destroyed = true;
             running?.abort();
+            closeBoard();
             window.removeEventListener('resize', place);
             overlay.remove();
         },

@@ -1,0 +1,31 @@
+{
+	// NER Tower leaderboard. Deploy steps: worker/README.md
+	"name": "ner-tower-leaderboard",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-01",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "ner-tower",
+			// Printed by `npx wrangler d1 create ner-tower`. Replace this placeholder with it.
+			"database_id": "6e2da216-5cb5-42ac-afc8-198957dbf3ab"
+		},
+		{
+			"binding": "ner_tower",
+			"database_name": "ner-tower",
+			"database_id": "6e2da216-5cb5-42ac-afc8-198957dbf3ab"
+		}
+	],
+	// At most 10 submissions per minute per IP and Cloudflare location. This is a speed bump, not a
+	// wall (Cloudflare documents it as approximate); the board is an honor system anyway.
+	"ratelimits": [
+		{
+			"name": "RATE_LIMITER",
+			"namespace_id": "4201",
+			"simple": {
+				"limit": 10,
+				"period": 60
+			}
+		}
+	]
+}

@@ -58,6 +58,6 @@ small adapter next to `src/data/hf/bioRows.ts`; keep that dataset's quirks insid
 Rows go through `canonicalize`, so sources never worry about ordering, duplicates or overlapping
 spans. Tests use a fake viewer server (`src/data/hf/fakeServer.testutil.ts`), so they run offline.
 
-The leaderboard backend is documented here when it lands.
+The leaderboard backend (Cloudflare Worker + D1) is documented in [worker/README.md](worker/README.md).
 
 Share codes, board keys and the weekly challenge are documented in [docs/BOARDS.md](docs/BOARDS.md).

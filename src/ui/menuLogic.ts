@@ -31,6 +31,15 @@ export function sizeLabel(source: Pick<DatasetSource, 'expectedRows'>): string {
     return n === undefined ? 'size unknown' : `${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} sentences`;
 }
 
+/** Heading and detail line of a board, from its configuration. */
+export function describeBoard(s: GameSettings, titleOf: (datasetId: string) => string | undefined): { title: string; subtitle: string } {
+    const dataset = s.datasetId === LOCAL_DATASET_ID ? 'Your own file' : (titleOf(s.datasetId) ?? s.datasetId);
+    return {
+        title: s.weekly ? `Weekly ${s.weekly}: ${dataset}` : dataset,
+        subtitle: `seed ${s.seed}, speed ${s.baseSpeed} (+${s.speedInc}), phase ${s.phaseDist} m`,
+    };
+}
+
 /** How a run is configured: from the sliders (and maybe a pasted share code), or the weekly challenge. */
 export type StartMode =
     | { kind: 'custom'; baseSpeed: number; speedInc: number; phaseDist: number; shareCode: string }

@@ -145,19 +145,19 @@ worker/                    # Cloudflare Worker + D1 schema
 
 ### M5 — Leaderboard (#1b)
 **Backend (`worker/`)**
-- [ ] D1 schema: `scores(board_key, player_id, nickname, score, created_at)`, unique `(board_key, player_id)` keeping the best score
-- [ ] `POST /scores` — validate payload shape, nickname length, plausible score bounds, per-IP rate limit
-- [ ] `GET /boards/:key?limit=` — top N
-- [ ] CORS configured (incl. `null` origin for local file usage)
-- [ ] Deploy docs (wrangler steps, free-tier notes)
+- [X] D1 schema: `scores(board_key, player_id, nickname, score, created_at)`, unique `(board_key, player_id)` keeping the best score
+- [X] `POST /scores` — validate payload shape, nickname length, plausible score bounds, per-IP rate limit
+- [X] `GET /boards/:key?limit=` — top N
+- [X] CORS configured (incl. `null` origin for local file usage)
+- [X] Deploy docs (wrangler steps, free-tier notes)
 
 **Client**
-- [ ] Build-time `VITE_LEADERBOARD_URL`; absent → leaderboard UI hidden
-- [ ] Anonymous player ID in localStorage + editable nickname
-- [ ] Submit on game over (never blocks gameplay; failures are silent/retryable)
-- [ ] Board view: top N, your rank, per-code board
-- [ ] Weekly tab per dataset
-- [ ] "Open board for a pasted code"
+- [X] Build-time `VITE_LEADERBOARD_URL`; absent → leaderboard UI hidden
+- [X] Anonymous player ID in localStorage + editable nickname
+- [X] Submit on game over (never blocks gameplay; failures are silent/retryable)
+- [X] Board view: top N, your rank, per-code board
+- [X] Weekly tab per dataset
+- [X] "Open board for a pasted code"
 
 ### M6 — Style pass (#4)
 - [ ] Scale canvas responsively (Phaser Scale FIT) and anchor DOM overlay to the canvas

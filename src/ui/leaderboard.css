@@ -1,0 +1,33 @@
+/* Leaderboard views: board table, nickname prompt, game over panel. Same look as the menu. */
+.nt-gop, .nt-modal-body {
+    box-sizing: border-box; overflow-y: auto; padding: 14px 16px;
+    background: #202020; border: 2px solid #444; color: #e6e6e6; font-family: monospace; font-size: 14px; line-height: 1.45;
+}
+.nt-gop * , .nt-modal-body * { box-sizing: border-box; }
+.nt-note { min-height: 20px; margin: 0 0 8px; color: #ffd24a; }
+
+.nt-board-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+.nt-board .nt-h { margin: 0; font-size: 15px; font-weight: bold; color: #fff; }
+.nt-board .nt-hint, .nt-prompt .nt-hint { font-size: 12px; color: #8d8d8d; }
+.nt-board .nt-link, .nt-prompt .nt-link { background: none; border: 0; padding: 0; font: inherit; color: #7fb8ff; text-decoration: underline; cursor: pointer; }
+.nt-board .nt-error { color: #ff6b6b; margin: 0 0 8px; }
+.nt-empty { color: #a0a0a0; margin: 8px 0; }
+
+.nt-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+.nt-table td { padding: 3px 6px; border-bottom: 1px solid #333; }
+.nt-rank { width: 56px; text-align: right; color: #8d8d8d; }
+.nt-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+.nt-score { text-align: right; white-space: nowrap; }
+.nt-table .is-you td { background: #2f3a2f; color: #fff; font-weight: bold; }
+.nt-table .nt-gap td { text-align: right; color: #666; border-bottom: 0; padding-right: 22px; }
+
+.nt-prompt { display: flex; flex-direction: column; gap: 8px; }
+.nt-prompt .nt-h { margin: 0; font-size: 15px; color: #fff; }
+.nt-prompt .nt-hint { margin: 0; }
+.nt-prompt .nt-hint.is-error { color: #ff6b6b; min-height: 18px; }
+.nt-prompt .nt-code { width: 100%; padding: 6px 8px; background: #111; color: #fff; border: 1px solid #555; font: inherit; }
+.nt-prompt .nt-actions { display: flex; gap: 10px; }
+.nt-prompt .nt-btn { padding: 9px 18px; background: #333; color: #fff; border: 2px solid #555; font: inherit; font-weight: bold; cursor: pointer; }
+.nt-prompt .nt-btn.is-primary { background: #fff; color: #111; border-color: #fff; }
+.nt-board .nt-btn { padding: 7px 14px; background: #333; color: #fff; border: 2px solid #555; font: inherit; font-weight: bold; cursor: pointer; }
+.nt-gop :focus-visible, .nt-modal-body :focus-visible { outline: 3px solid #7fb8ff; outline-offset: 2px; }

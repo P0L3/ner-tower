@@ -1,0 +1,15 @@
+{
+  "name": "ner-tower-leaderboard",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 execute ner-tower --local --file=schema.sql",
+    "db:remote": "wrangler d1 execute ner-tower --remote --file=schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
