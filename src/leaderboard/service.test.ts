@@ -3,6 +3,7 @@ import { Leaderboard } from './service';
 import { LeaderboardClient } from './client';
 import { Outbox } from './outbox';
 import { PlayerStore, type SyncStorage } from './player';
+import { BestScores } from './bests';
 import { handleRequest, type Env } from '../../worker/src/handler';
 import { createTestDb } from '../../worker/src/d1.testutil';
 
@@ -114,7 +115,50 @@ describe('Leaderboard.submitRun', () => {
         const ada = newPlayer('Ada');
         await ada.submitRun(KEY, 10);
         ada.player.setNickname('Ada II');
-        await ada.submitRun(KEY, 5);
-        expect((await ada.client.board(KEY)).entries[0]).toMatchObject({ nickname: 'Ada II', score: 10 });
+        await ada.submitRun(KEY, 15);
+        expect((await ada.client.board(KEY)).entries[0]).toMatchObject({ nickname: 'Ada II', score: 15 });
+    });
+
+    it('sends only personal bests: worse and equal runs cause no request at all', async () => {
+        const ada = newPlayer('Ada');
+        expect(await ada.submitRun(KEY, 100)).toMatchObject({ status: 'sent' });
+        const before = requests.length;
+        expect(await ada.submitRun(KEY, 40)).toEqual({ status: 'not-better', best: 100 });
+        expect(await ada.submitRun(KEY, 100)).toEqual({ status: 'not-better', best: 100 });
+        expect(requests).toHaveLength(before);
+        expect(await ada.submitRun(KEY, 101)).toMatchObject({ status: 'sent', response: { best: 101, improved: true } });
+        expect(requests).toHaveLength(before + 1);
+    });
+
+    it('boards are independent, and the best is remembered across page loads', async () => {
+        const storage = mem();
+        const make = () => new Leaderboard(new LeaderboardClient('https://lb.test', { fetch: fakeFetch }), new PlayerStore(storage), new Outbox(storage), new BestScores(storage));
+        const first = make();
+        first.player.setNickname('Ada');
+        await first.submitRun(KEY, 50);
+        const reloaded = make();
+        expect(await reloaded.submitRun(KEY, 30)).toEqual({ status: 'not-better', best: 50 });
+        expect(await reloaded.submitRun(KEY2, 30)).toMatchObject({ status: 'sent' });
+    });
+
+    it('learns the best from the server, so a fresh browser does not resend a worse score', async () => {
+        const storage = mem();
+        const a = new Leaderboard(new LeaderboardClient('https://lb.test', { fetch: fakeFetch }), new PlayerStore(storage), new Outbox(storage), new BestScores(storage));
+        a.player.setNickname('Ada');
+        await a.submitRun(KEY, 80);
+        // same player id, empty bests (e.g. only that key was cleared): the first submit teaches it the server's best
+        const b = new Leaderboard(new LeaderboardClient('https://lb.test', { fetch: fakeFetch }), a.player, new Outbox(mem()), new BestScores(mem()));
+        expect(await b.submitRun(KEY, 20)).toMatchObject({ status: 'sent', response: { best: 80, improved: false } });
+        expect(await b.submitRun(KEY, 20)).toEqual({ status: 'not-better', best: 80 });
+    });
+
+    it('a score still waiting in the outbox counts as the best known, so it is not queued twice', async () => {
+        const ada = newPlayer('Ada');
+        down = true;
+        await ada.submitRun(KEY, 60);
+        const n = requests.length;
+        expect(await ada.submitRun(KEY, 40)).toMatchObject({ status: 'queued' });
+        expect(ada.outbox.list()).toEqual([{ boardKey: KEY, score: 60 }]);   // not 40, not twice
+        expect(requests.length).toBeGreaterThan(n); // it retried the queued one while it was at it
     });
 });

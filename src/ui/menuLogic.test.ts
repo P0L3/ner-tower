@@ -3,6 +3,7 @@ import { buildSettings, describeProgress, sizeLabel } from './menuLogic';
 import { encodeShareCode } from '../config/shareCode';
 import { LOCAL_DATASET_ID } from '../config/settings';
 import { weeklySettings } from '../config/weekly';
+import { classicSettings } from '../config/classic';
 
 const HASH = 'f'.repeat(16) + '0'.repeat(48);
 const SILVER = { datasetId: 'P0L3/CliReNER_v_1_1_28_SILVER', contentHash: HASH };
@@ -55,5 +56,17 @@ describe('buildSettings', () => {
         const now = new Date('2026-10-25T10:00:00Z');
         expect(buildSettings({ kind: 'weekly', now }, SILVER)).toEqual({ ok: true, settings: weeklySettings(now, SILVER.datasetId, 'f'.repeat(16)) });
         expect(buildSettings({ kind: 'weekly', now }, { datasetId: LOCAL_DATASET_ID, contentHash: HASH }).ok).toBe(false);
+    });
+});
+
+describe('buildSettings: classic', () => {
+    const pinned = 'f'.repeat(16);
+    it('is the fixed configuration of the dataset, whatever the sliders say', () => {
+        expect(buildSettings({ kind: 'classic', pinnedHash: pinned }, SILVER)).toEqual({ ok: true, settings: classicSettings(SILVER.datasetId, pinned) });
+    });
+    it('is paused when the data no longer matches the pinned hash, and absent without one', () => {
+        expect(buildSettings({ kind: 'classic', pinnedHash: '0123456789abcdef' }, SILVER)).toMatchObject({ ok: false, error: expect.stringContaining('paused') });
+        expect(buildSettings({ kind: 'classic', pinnedHash: undefined }, SILVER)).toMatchObject({ ok: false, error: expect.stringContaining('no Classic') });
+        expect(buildSettings({ kind: 'classic', pinnedHash: pinned }, { datasetId: LOCAL_DATASET_ID, contentHash: HASH }).ok).toBe(false);
     });
 });

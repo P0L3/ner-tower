@@ -36,15 +36,39 @@ configuration, and it is simply an ordinary board.
   existing codes or boards mean. Do it on purpose: new share code format -> `NT2` (keep reading `NT1`),
   new key layout -> `BOARD_KEY_VERSION`, new weekly derivation -> the tag in `weekly.ts`.
 - Narrowing `SETTING_RANGES` or moving its grid makes old codes unreadable. Widening is safe.
+- Changing `CLASSIC_PRESET` or the Classic tag makes every Classic board a new one. Do it only on purpose.
 - Changing `WEEKLY_PRESET` should happen at a week boundary: clients on different builds would
   otherwise disagree about the current week for a few days.
+
+## Classic challenge (`src/config/classic.ts`)
+
+One fixed configuration per curated dataset: seed = first 32 bits of
+`sha256("ner-tower-classic-v1|<datasetId>")`, with the fixed `CLASSIC_PRESET` (speed 0.5, inc 0.15,
+phase 100 m). It is an ordinary board, like the weekly one, but nothing about it depends on the date.
+
+What keeps it "never changing":
+
+- **The rules:** the ruleset version is part of the key. A deliberate bump starts a new Classic board.
+- **The data:** every source pins the content hash of the data its Classic board belongs to
+  (`classicHash` in the source file, 16 hex chars). If the loaded data hashes differently, the menu
+  pauses Classic with an explanation instead of quietly forking the board. Weekly and custom runs
+  are unaffected. A source without `classicHash` has no Classic challenge (the demo has none).
+- **This file:** `classic.test.ts` pins the seeds, the preset and a board key.
+
+Getting the hash: `npm run classic:pin` (needs network) downloads each dataset, prints the line to
+paste into its source file, and builds the Classic tower with the real generator to report fallbacks.
+`npm run test:live` fails if pinned data no longer matches.
+
+The Classic leaderboard is known without downloading anything (the hash is pinned), so it opens
+instantly. A replay of the Classic seed through a share code lands on the same board and is labelled
+"Classic challenge" on the game over screen.
 
 ## Leaderboard (M5)
 
 The server side lives in [worker/](../worker/README.md); the wire format in
 `src/leaderboard/protocol.ts` (shared by game and Worker, so validation cannot drift apart).
 
-- **When scores are sent:** automatically at game over. The first time, the game asks for a
+- **When scores are sent:** automatically at game over, but only a **personal best** per board. A run that does not beat the best this browser knows for that board would change nothing on the server, so it is not sent (the game over screen says so). Share codes upload nothing; they are computed locally. The first time, the game asks for a
   nickname and sends the score right after; later runs need no interaction. The nickname can be
   changed in the menu.
 - **Never lost, never blocking:** every score first goes into a local outbox (best per board). If

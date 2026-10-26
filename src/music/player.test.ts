@@ -72,6 +72,18 @@ describe('MusicPlayer', () => {
         expect(run(3)).toBeGreaterThan(0);
     });
 
+    it('takes a volume at construction and while running, clamped, without disturbing the schedule', () => {
+        vi.useFakeTimers();
+        const { ctx, raw, made } = fakeContext();
+        const p = new MusicPlayer(ctx, new Composer(data, 1), { volume: 7 });
+        p.setVolume(-1);                       // before start: just remembered
+        p.start();
+        p.setVolume(0.3);
+        for (let i = 0; i < 10; i++) { raw.currentTime += 0.1; vi.advanceTimersByTime(100); }
+        expect(made.oscillators).toBeGreaterThan(0);
+        p.stop(0.1);
+    });
+
     it('start is idempotent', () => {
         vi.useFakeTimers();
         const { ctx, made } = fakeContext();

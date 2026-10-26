@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "analyze": "tsx tools/analyze.ts",
     "test:live": "vitest run --config vitest.live.config.ts",
-    "music": "vite --open /tools/music-test.html"
+    "music": "vite --open /tools/music-test.html",
+    "classic:pin": "tsx tools/classic-pin.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

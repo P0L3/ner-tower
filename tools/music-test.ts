@@ -14,6 +14,8 @@ import { loadSource } from '../src/data/sources/cached';
 import { createDefaultCache } from '../src/data/cache';
 import { loadDatasetText } from '../src/data/load';
 import { randomSeed } from '../src/config/settings';
+import { audioContext, playSound, sndJump, sndLand, sndCombo, sndPhase, sndOver } from '../src/core/audio';
+import { getVolumes, setVolumes } from '../src/core/volume';
 import type { SentenceData } from '../src/data/types';
 
 interface Loaded { id: string; hash: string; sentences: SentenceData[] }
@@ -29,7 +31,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Record<string,
 const row = (label: string, ...kids: Node[]) => el('div', { className: 'row' }, el('label', { textContent: label }), ...kids);
 
 const cache = createDefaultCache();
-const ctx = new AudioContext();
+const ctx = audioContext;   // the game's own context, shared with the sound effects
 let player: MusicPlayer | undefined;
 let loaded: Loaded = { id: SYNTHETIC, hash: SYNTHETIC, sentences: filterPlayable(makeSyntheticDataset(300, 12, 4)) };
 let order: string[] = [];
@@ -57,8 +59,21 @@ document.getElementById('app')!.append(
     row('Phase', phaseInput, phaseOut),
     row('Sound', enabledBox, el('span', { textContent: 'audible (off = muted, timeline keeps running)' })),
     el('div', { className: 'row' }, playBtn),
+    row('Effects', ...effectButtons(), effectsVolume()),
     status, info,
     el('div', {}, 'Labels (struck through = unstable at this phase, their lead notes are silent):', labelsBox));
+
+// ---- sound effects: the same presets and volume as in the game ----
+function effectButtons(): HTMLElement[] {
+    const presets: [string, readonly (number | undefined)[]][] = [['Jump', sndJump], ['Land', sndLand], ['Super jump', sndCombo], ['Phase', sndPhase], ['Game over', sndOver]];
+    return presets.map(([name, preset]) => el('button', { textContent: name, onclick: () => { void ctx.resume(); playSound(preset); } }));
+}
+function effectsVolume(): HTMLElement {
+    const out = el('output', { textContent: `${Math.round(getVolumes().effects * 100)}%` });
+    const input = el('input', { type: 'range', min: '0', max: '100', step: '5', value: String(Math.round(getVolumes().effects * 100)) });
+    input.addEventListener('input', () => { out.textContent = `${input.value}%`; setVolumes({ effects: Number(input.value) / 100 }); });
+    return el('span', {}, input, ' ', out);
+}
 
 // ---- logic ----
 function seed(): number { const n = Number(seedInput.value); return Number.isInteger(n) && n >= 0 ? n : 0; }

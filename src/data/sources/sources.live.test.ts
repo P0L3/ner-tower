@@ -39,6 +39,8 @@ describe.each(HUB_SOURCES.map(s => [s.id, s] as const))('live: %s', (_id, source
             expect(loaded.rowsRead, `upstream has ${loaded.rowsRead} rows but the source declares ${source.expectedRows}: did the dataset change? Update expectedRows if so.`).toBe(source.expectedRows);
         }
         expect(loaded.rowsSkipped).toBe(0);
+        if (source.classicHash === undefined) console.warn(`[${source.id}] no classicHash pinned: run npm run classic:pin`);
+        else expect(canonical.contentHash.slice(0, 16), `the data of ${source.id} changed upstream: the Classic board is paused until you review it (npm run classic:pin)`).toBe(source.classicHash);
         expect(canonical.sentences.length).toBeGreaterThanOrEqual(Math.floor((source.expectedRows ?? 1) * 0.9));
         const labels = new Set(canonical.sentences.flatMap(s => s.ner.map(sp => sp[2])));
         console.info(`[${source.id}] ${labels.size} labels in use`);

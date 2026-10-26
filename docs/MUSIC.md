@@ -30,8 +30,8 @@ touches the tower generator and never affects the score, so it is not part of th
 
 ## Controls and files
 
-- **M** toggles the music (remembered in this browser). Muting keeps the timeline running.
+- **M** toggles the music (remembered in this browser). The **Music** slider in Settings sets its level, and **Effects** sets the sound effects; effects start well below the music. Muting keeps the timeline running.
 - `src/music/composer.ts`: pure, deterministic composition (no Web Audio). Unit tested.
 - `src/music/player.ts`: Web Audio synth and look-ahead scheduler. `MIX` holds the loudness of each part.
 - `src/music/prefs.ts`: the on/off preference.
-- `tools/music-test.html` + `tools/music-test.ts`: a stand-alone listening booth (no game). Run `npm run music`; pick a dataset, seed and phase, and hear exactly what the game plays.
+- `tools/music-test.html` + `tools/music-test.ts`: a stand-alone listening booth (no game), with buttons for every sound effect and the Effects volume. Run `npm run music`; pick a dataset, seed and phase, and hear exactly what the game plays.

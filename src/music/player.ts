@@ -2,7 +2,7 @@ import { seededRandom } from '../core/rng';
 import { STEPS_PER_BAR, isAudible, midiToFreq, type Bar, type Composer, type MusicNote, type Voice } from './composer';
 
 /** Loudness of each part. Tune the mix here; the sound effects (core/audio.ts) play at 0.3 on top of it. */
-export const MIX = { master: 0.5, lead: 0.16, pluck: 0.09, bass: 0.26, pad: 0.07, drums: 1 } as const;
+export const MIX = { master: 0.5, lead: 0.16, pluck: 0.09, bass: 0.26, pad: 0.07, drums: 0.2 } as const;
 
 /** Tempo rises with the phase, like the scroll speed does. */
 export const TEMPO = { perPhase: 0.015, maxPhases: 20 } as const;
@@ -29,6 +29,7 @@ export class MusicPlayer {
     private readonly ctx: AudioContext;
     private readonly composer: Composer;
     private enabled: boolean;
+    private volume: number;
     private running = false;
     private timer: ReturnType<typeof setInterval> | undefined;
 
@@ -43,10 +44,11 @@ export class MusicPlayer {
     private phase = 0;
     private unstable: ReadonlySet<string> = new Set();
 
-    constructor(ctx: AudioContext, composer: Composer, options: { enabled?: boolean } = {}) {
+    constructor(ctx: AudioContext, composer: Composer, options: { enabled?: boolean; volume?: number } = {}) {
         this.ctx = ctx;
         this.composer = composer;
         this.enabled = options.enabled ?? true;
+        this.volume = Math.min(1, Math.max(0, options.volume ?? 1));
     }
 
     get isEnabled(): boolean { return this.enabled; }
@@ -59,7 +61,7 @@ export class MusicPlayer {
         compressor.connect(ctx.destination);
         this.master = ctx.createGain();
         this.master.gain.setValueAtTime(0.0001, ctx.currentTime);
-        this.master.gain.linearRampToValueAtTime(MIX.master, ctx.currentTime + 0.8);   // fade in
+        this.master.gain.linearRampToValueAtTime(Math.max(0.0001, MIX.master * this.volume), ctx.currentTime + 0.8);   // fade in
         this.master.connect(compressor);
 
         for (const name of ['lead', 'pluck', 'bass', 'pad', 'drums'] as const) {
@@ -88,6 +90,12 @@ export class MusicPlayer {
     setPhase(phase: number, unstable: ReadonlySet<string>): void {
         this.phase = phase;
         this.unstable = unstable;
+    }
+
+    /** Overall music level, 0..1 (the player's Music slider). */
+    setVolume(volume: number): void {
+        this.volume = Math.min(1, Math.max(0, volume));
+        if (this.running) this.master.gain.setTargetAtTime(MIX.master * this.volume, this.ctx.currentTime, 0.05);
     }
 
     /** Muting keeps the timeline running, so the music comes back in time. */

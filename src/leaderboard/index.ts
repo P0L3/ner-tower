@@ -3,6 +3,7 @@ import { LeaderboardClient } from './client';
 import { Outbox } from './outbox';
 import { PlayerStore, browserStorage } from './player';
 import { Leaderboard } from './service';
+import { BestScores } from './bests';
 
 export { Leaderboard } from './service';
 
@@ -15,7 +16,7 @@ export function getLeaderboard(): Leaderboard | undefined {
         if (url === undefined) instance = undefined;
         else {
             const storage = browserStorage();
-            instance = new Leaderboard(new LeaderboardClient(url), new PlayerStore(storage), new Outbox(storage));
+            instance = new Leaderboard(new LeaderboardClient(url), new PlayerStore(storage), new Outbox(storage), new BestScores(storage));
         }
     }
     return instance;

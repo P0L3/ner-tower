@@ -10,5 +10,7 @@ export const clirenerSilver = hfBioSource({
     version: '1.1.28',
     repo: 'P0L3/CliReNER_v_1_1_28_SILVER',
     palette: CLIRENER_PALETTE,
+    classicHash: 'cd720abff1c377bc',
+    // classicHash: run `npm run classic:pin`, paste the value here, and the Classic challenge is on.
     expectedRows: 1027,
 });

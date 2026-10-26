@@ -1,0 +1,18 @@
+/* Menu screens: the main menu is short, everything else lives on its own screen. */
+.nt-view { display: flex; flex-direction: column; gap: 14px; }
+.nt-view[hidden] { display: none; }
+.nt-viewhead { display: flex; align-items: center; gap: 14px; }
+.nt-viewhead .nt-h { margin: 0; font-size: 18px; }
+
+.nt-chip {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 14px; background: #242424; border: 2px solid #333;
+}
+.nt-chip-title { font-weight: bold; color: #fff; font-size: 16px; }
+.nt-sub { font-size: 12px; color: #8d8d8d; }
+.nt-sub.is-error { color: #ff6b6b; }
+
+.nt-wide { width: 100%; padding: 14px 18px; font-size: 18px; }
+.nt-actions > .nt-btn { flex: 1; }
+.nt-actions.is-secondary > .nt-btn { background: #262626; font-weight: normal; }
+.nt-note-line { margin: 0; }

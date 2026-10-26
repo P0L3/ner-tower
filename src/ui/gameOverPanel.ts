@@ -77,6 +77,9 @@ export function mountGameOverPanel(o: GameOverPanelOptions): { destroy(): void }
                     : `Your best on this board is ${formatInt(r.best)} m: rank ${formatInt(r.rank)} of ${formatInt(r.total)}.`;
                 break;
             }
+            case 'not-better':
+                note.textContent = `Your best on this board is ${formatInt(outcome.best)} m. This run did not beat it, so nothing was sent.`;
+                break;
             case 'queued': note.textContent = `${outcome.reason} Your score is saved and will be sent next time.`; break;
             case 'rejected': note.textContent = `The leaderboard did not accept this score: ${outcome.reason}`; break;
             case 'skipped': note.textContent = ''; break;

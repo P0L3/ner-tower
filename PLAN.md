@@ -177,6 +177,24 @@ worker/                    # Cloudflare Worker + D1 schema
 
 ---
 
+### M8 — Classic board, mixer, menu split
+- [x] Classic challenge: one fixed seed + difficulty per curated dataset (`config/classic.ts`), Classic leaderboard, "Classic challenge" label on game over
+- [x] Per-source `classicHash` pin; a data change pauses Classic instead of forking the board
+- [ ] Run `npm run classic:pin` and paste `classicHash` into `clirener-gold.ts` and `clirener-silver.ts` (needs network); Classic stays off until then
+- [x] Music and Effects volume sliders (`core/volume.ts`); effects now start well below the music
+- [x] Menu split into screens: main, datasets, settings, replay a run, leaderboards; last dataset remembered
+- ~~Paste a Hugging Face dataset ID~~ dropped (decision: datasets are added as source files)
+
+---
+
+### M9 — Wrap-up
+- [x] Sound effects fixed: jump is a short rising chirp, landing a short falling thump (the old presets were swapped and had 0.6 s tails); a landing is silent when it is also a take-off (holding Up) or a ground-contact flicker
+- [x] Only personal bests are sent to the leaderboard (`leaderboard/bests.ts`)
+- [x] Deployment how-to: `docs/DEPLOY.md`
+- [ ] Pin `classicHash` for both CliReNER sources (`npm run classic:pin`), then push to `main`
+
+---
+
 ## 4. Risks & watch-outs
 
 | Risk | Mitigation |

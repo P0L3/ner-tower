@@ -3,6 +3,7 @@ import type { SentenceData, EntityStats } from '../../data/types';
 import type { GameSettings } from '../../config/settings';
 import { encodeShareCode } from '../../config/shareCode';
 import { randomSeed, withNewSeed } from '../../config/settings';
+import { challengeName } from '../../config/classic';
 import { SOURCES } from '../../data/sources/index';
 import { getLeaderboard } from '../../leaderboard/index';
 import { mountGameOverPanel } from '../../ui/gameOverPanel';
@@ -29,7 +30,8 @@ export class GameOverScene extends Phaser.Scene {
     create() {
         this.add.text(425, 55, 'GAME OVER', { fontSize: '52px', color: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5);
         this.add.text(425, 110, `Score: ${this.finalHeight}m`, { fontSize: '30px', color: '#ffffff' }).setOrigin(0.5);
-        if (this.settings.weekly) this.add.text(425, 145, `Weekly challenge ${this.settings.weekly}`, { fontSize: '18px', color: '#ffd24a' }).setOrigin(0.5);
+        const challenge = challengeName(this.settings);
+        if (challenge) this.add.text(425, 145, challenge, { fontSize: '18px', color: '#ffd24a' }).setOrigin(0.5);
 
         const code = encodeShareCode(this.settings);
         const shareCodeText = this.add.text(425, 215, `Share Code (Click to Copy):\n\n${code}`, {

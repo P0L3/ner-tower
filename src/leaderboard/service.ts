@@ -1,5 +1,6 @@
 import { LeaderboardClient, LeaderboardError } from './client';
 import { Outbox } from './outbox';
+import { BestScores } from './bests';
 import { PlayerStore } from './player';
 import type { SubmitResponse } from './protocol';
 
@@ -14,6 +15,7 @@ export interface FlushResult {
 
 export type RunOutcome =
     | { status: 'skipped' }                                  // nothing to submit (score 0)
+    | { status: 'not-better'; best: number }                 // not above the best already known for this board: nothing is sent
     | { status: 'needs-nickname' }                           // saved; will be sent once a nickname exists
     | { status: 'sent'; response: SubmitResponse }
     | { status: 'queued'; reason: string }                   // saved; will be retried
@@ -22,19 +24,24 @@ export type RunOutcome =
 /**
  * Submitting scores without ever blocking or losing them: every score goes into the outbox first,
  * then the outbox is flushed. A failure just leaves it queued for the next flush.
+ * Only personal bests are sent: a run that does not beat the best this browser knows for the board
+ * would change nothing on the server, so it is not sent at all.
  */
 export class Leaderboard {
     readonly client: LeaderboardClient;
     readonly player: PlayerStore;
     readonly outbox: Outbox;
+    readonly bests: BestScores;
     /** Set when the player skipped the nickname prompt; the game stops asking until the page is reloaded. */
     promptDeclined = false;
     private chain: Promise<unknown> = Promise.resolve();
 
-    constructor(client: LeaderboardClient, player: PlayerStore, outbox: Outbox) {
+    constructor(client: LeaderboardClient, player: PlayerStore, outbox: Outbox, bests?: BestScores) {
         this.client = client;
         this.player = player;
         this.outbox = outbox;
+        const memory = new Map<string, string>();
+        this.bests = bests ?? new BestScores({ getItem: k => memory.get(k) ?? null, setItem: (k, v) => { memory.set(k, v); } });
     }
 
     /** Sends everything pending. Calls queue up, so two flushes never run at once. Never throws. */
@@ -52,6 +59,7 @@ export class Leaderboard {
             try {
                 const response = await this.client.submit({ boardKey: pending.boardKey, playerId: this.player.id, nickname, score: pending.score });
                 this.outbox.remove(pending.boardKey, pending.score);
+                this.bests.record(pending.boardKey, response.best);
                 result.sent.set(pending.boardKey, response);
             } catch (e) {
                 const err = e instanceof LeaderboardError ? e : new LeaderboardError('network', 'Could not reach the leaderboard.');
@@ -65,7 +73,19 @@ export class Leaderboard {
 
     async submitRun(boardKey: string, score: number): Promise<RunOutcome> {
         if (!(score >= 1)) return { status: 'skipped' };
+        const queued = this.outbox.list().find(p => p.boardKey === boardKey)?.score ?? 0;
+        const known = Math.max(this.bests.get(boardKey), queued);
+        if (score <= known) {
+            if (queued >= score) return this.deliver(boardKey);      // this score (or a better one) is already waiting: send it now
+            if (this.outbox.list().length > 0) await this.flush();   // otherwise nothing to send for this board, but retry what else is waiting
+            return { status: 'not-better', best: Math.max(known, this.bests.get(boardKey)) };
+        }
         this.outbox.add(boardKey, score);
+        return this.deliver(boardKey);
+    }
+
+    /** Flushes the outbox and reports what happened to the score of one board. */
+    private async deliver(boardKey: string): Promise<RunOutcome> {
         const flushed = await this.flush();
         const sent = flushed.sent.get(boardKey);
         if (sent) return { status: 'sent', response: sent };

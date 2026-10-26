@@ -17,6 +17,8 @@ export interface HfBioSourceConfig {
     columns?: { tokens: string; tags: string; id?: string };
     palette?: Readonly<Record<string, number>>;
     expectedRows?: number;
+    /** See DatasetSource.classicHash. */
+    classicHash?: string;
 }
 
 /**
@@ -38,6 +40,7 @@ export function hfBioSource(cfg: HfBioSourceConfig): DatasetSource {
         version: cfg.version,
         palette: cfg.palette,
         expectedRows: cfg.expectedRows,
+        classicHash: cfg.classicHash,
 
         async load(options: LoadOptions = {}): Promise<LoadedSource> {
             const client: HfClientOptions = { fetch: options.fetch, sleep: options.sleep, signal: options.signal };

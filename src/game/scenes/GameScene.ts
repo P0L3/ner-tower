@@ -3,16 +3,20 @@ import type { SentenceData, EntityStats } from '../../data/types';
 import type { GameSettings } from '../../config/settings';
 import { PHYSICS, COMBO, CAMERA } from '../../config/ruleset';
 import { seededRandom } from '../../core/rng';
-import { zzfx, resumeAudio, audioContext, sndJump, sndLand, sndCombo, sndPhase, sndOver } from '../../core/audio';
+import { playSound, resumeAudio, audioContext, sndJump, sndLand, sndCombo, sndPhase, sndOver } from '../../core/audio';
 import { Composer, musicSeed } from '../../music/composer';
 import { MusicPlayer } from '../../music/player';
 import { loadMusicEnabled, saveMusicEnabled } from '../../music/prefs';
+import { getVolumes } from '../../core/volume';
 import { buildColorMap, type Palette } from '../palette';
 import { TowerPlanner } from '../tower';
 import { phaseAt, unstableLabelsAt } from '../phases';
 import { jumpVelocity, nextCameraY, scoreAtY, hasFallenOut } from '../movement';
 import { TowerStreamer } from '../streamer';
 import { SentenceView, type PlatformRef } from '../SentenceView';
+
+/** A landing makes a sound only after at least this long in the air (ground contact can flicker). */
+const LAND_SOUND_MIN_AIR_MS = 90;
 
 export class GameScene extends Phaser.Scene {
     private dataset!: SentenceData[];
@@ -48,6 +52,7 @@ export class GameScene extends Phaser.Scene {
     private comboTimer = 0;
     private lastPlatformY: number = PHYSICS.playerStartY;
     private wasTouchingDown = false;
+    private airMs = 0;
 
     constructor() { super('GameScene'); }
 
@@ -72,6 +77,7 @@ export class GameScene extends Phaser.Scene {
         this.comboTimer = 0;
         this.lastPlatformY = PHYSICS.playerStartY;
         this.wasTouchingDown = false;
+        this.airMs = 0;
         this.uiEntityTexts.clear();
     }
 
@@ -173,7 +179,7 @@ export class GameScene extends Phaser.Scene {
     private startMusic() {
         resumeAudio();
         const { datasetId, contentHash, seed } = this.settings;
-        const music = new MusicPlayer(audioContext, new Composer(this.dataset, musicSeed(datasetId, contentHash, seed)), { enabled: loadMusicEnabled() });
+        const music = new MusicPlayer(audioContext, new Composer(this.dataset, musicSeed(datasetId, contentHash, seed)), { enabled: loadMusicEnabled(), volume: getVolumes().music });
         this.music = music;
         music.start();
         this.refreshMusicLabel();
@@ -205,10 +211,14 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
+        const jumpsNow = this.cursors.up.isDown && body.touching.down; // holding Up: the landing is also a take-off
+        if (!body.touching.down) this.airMs += delta;
+
         if (body.touching.down && !this.wasTouchingDown) {
             this.playerVisual.rotation = 0;
 
-            zzfx(...sndLand); // Sound: Land
+            // Sound: Land. Not when this frame is already a take-off (then only the jump is heard), and not for a contact flicker.
+            if (!jumpsNow && this.airMs >= LAND_SOUND_MIN_AIR_MS) playSound(sndLand);
 
             this.dustEmitter.emitParticleAt(this.player.x, this.player.y + 15, 10);
             this.tweens.killTweensOf(this.playerVisual);
@@ -230,11 +240,13 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        if (this.cursors.up.isDown && body.touching.down) {
+        if (body.touching.down) this.airMs = 0;
+
+        if (jumpsNow) {
             this.hasStarted = true;
             const superJump = this.comboCount >= COMBO.superJumpAt;
             const jf = jumpVelocity(body.velocity.x, superJump);
-            zzfx(...(superJump ? sndCombo : sndJump)); // Sound: Super Jump / Normal Jump
+            playSound(superJump ? sndCombo : sndJump); // Sound: Super Jump / Normal Jump
             body.setVelocityY(jf);
 
             this.dustEmitter.emitParticleAt(this.player.x, this.player.y + 15, 8);
@@ -254,7 +266,7 @@ export class GameScene extends Phaser.Scene {
             this.cameraY = nextCameraY(this.cameraY, this.scrollSpeed, this.player.y);
             cam.scrollY = this.cameraY;
             if (hasFallenOut(this.player.y, cam.scrollY, cam.height)) {
-                zzfx(...sndOver); // Sound: Game Over
+                playSound(sndOver); // Sound: Game Over
                 this.scene.start('GameOverScene', { height: this.maxHeightReached, dataset: this.dataset, entityStats: this.entityStats, settings: this.settings, palette: this.palette });
             }
         }
@@ -273,7 +285,7 @@ export class GameScene extends Phaser.Scene {
             const advanced = phase - this.currentPhase;
             this.currentPhase = phase;
 
-            zzfx(...sndPhase); // Sound: Warning Phase
+            playSound(sndPhase); // Sound: Warning Phase
             this.cameras.main.shake(200, 0.01);
 
             // Turn EVERY label that is unstable at this phase (also covers skipped phases)

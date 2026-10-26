@@ -12,7 +12,7 @@ It runs from a single HTML file: no server, no Python, no account.
 |---|---|
 | Left / Right | Run |
 | Up | Jump (faster running = higher jump) |
-| M | Music on / off |
+| M | Music on / off (volumes: Settings in the menu) |
 | R / S / N | On the game over screen: restart with the same seed / new seed, same settings / back to the menu |
 
 - Land on entity tokens to climb. Plain words are not solid.
@@ -65,7 +65,8 @@ dataset, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Share codes, boards and the weekly challenge
 
-A run is defined by dataset, seed and difficulty settings. The **share code** shown on the game over
+A run is defined by dataset, seed and difficulty settings. The **Classic challenge** is one fixed seed and
+difficulty per curated dataset, a global board that never rotates. The **share code** shown on the game over
 screen lets anyone replay exactly that tower: paste it in the menu. Each distinct configuration is its
 own leaderboard board. The **weekly challenge** gives everyone the same seed for a dataset each UTC
 week, with fixed settings. Details: [docs/BOARDS.md](docs/BOARDS.md).
@@ -104,7 +105,7 @@ Project layout and contribution rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Deploying
 
-Pushes to `main` run the tests and publish the single-file build to GitHub Pages (`.github/workflows/`).
+Step by step: [docs/DEPLOY.md](docs/DEPLOY.md). In short, pushes to `main` run the tests and publish the single-file build to GitHub Pages (`.github/workflows/`).
 Enable it once under Settings > Pages > Source: GitHub Actions. To build with a leaderboard, add a repository
 variable `LEADERBOARD_URL` (Settings > Secrets and variables > Actions > Variables). The build is one HTML
 file, so it can also be hosted anywhere static, for example a static Hugging Face Space.

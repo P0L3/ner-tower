@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../core/audio', () => ({ resumeAudio: () => {} })); // zzfx creates an AudioContext at import time
+vi.mock('../core/audio', () => ({ resumeAudio: () => {}, playSound: () => {}, sndJump: [] })); // zzfx creates an AudioContext at import time
 
 import { mountBoard } from './boardView';
 import { mountNicknamePrompt } from './nicknamePrompt';
@@ -11,6 +11,7 @@ import { createBackend } from '../leaderboard/fakeBackend.testutil';
 import { boardKey } from '../config/board';
 import { weeklySettings } from '../config/weekly';
 import { encodeShareCode } from '../config/shareCode';
+import { classicSettings } from '../config/classic';
 import { DatasetCache, memoryStore } from '../data/cache';
 import { canonicalize } from '../data/canonical';
 import { makeSyntheticDataset } from '../data/fixtures/synthetic';
@@ -27,7 +28,7 @@ const SETTINGS: GameSettings = { datasetId: 'P0L3/CliReNER_v_1_1_28_GOLD', conte
 const KEY = boardKey(SETTINGS);
 
 let canvas: HTMLCanvasElement;
-beforeEach(() => { document.body.innerHTML = '<div id="game-container"><canvas width="850" height="800"></canvas></div>'; canvas = document.querySelector('canvas')!; });
+beforeEach(() => { localStorage.clear(); document.body.innerHTML = '<div id="game-container"><canvas width="850" height="800"></canvas></div>'; canvas = document.querySelector('canvas')!; });
 
 describe('board view', () => {
     it('lists the top entries, and shows the player their exact rank when it is far below', async () => {
@@ -157,6 +158,8 @@ describe('game over panel', () => {
         await lb.submitRun(KEY, 300);
         mountGameOverPanel({ canvas, leaderboard: lb, settings: SETTINGS, score: 40, datasetTitle: undefined });
         await until(() => text().includes('Your best on this board is 300 m'));
+        expect(text()).toContain('nothing was sent');
+        expect(be.posts()).toHaveLength(1);
     });
 
     it('skipping keeps the score queued, stops asking, and still shows the board', async () => {
@@ -248,6 +251,7 @@ describe('menu with a leaderboard', () => {
         const lb = be.newLeaderboard('Ada');
         const loads = vi.fn(async () => ({ canonical, rowsRead: 40, rowsSkipped: 0 }));
         mountMenu({ canvas, sources: [{ ...clirenerGold, load: loads }], cache: new DatasetCache(memoryStore()), onStart: () => {}, leaderboard: lb });
+        button('Replay a run')!.click();
         const box = document.querySelector('.nt-code[placeholder^="Paste"]') as HTMLInputElement;
         expect(button('View the leaderboard for this code')!.hidden).toBe(true);
         box.value = encodeShareCode(SETTINGS);
@@ -259,6 +263,29 @@ describe('menu with a leaderboard', () => {
         box.value = 'garbage';
         box.dispatchEvent(new Event('input'));
         expect(button('View the leaderboard for this code')!.hidden).toBe(true);
+    });
+
+    it('the Classic leaderboard opens straight from the pinned hash, with no download', async () => {
+        const be = await createBackend();
+        const lb = be.newLeaderboard('Ada');
+        const pinned = canonical.contentHash.slice(0, 16);
+        const classic = classicSettings(clirenerGold.datasetId, pinned);
+        await lb.submitRun(boardKey(classic), 88);
+        const loads = vi.fn(async () => ({ canonical, rowsRead: 40, rowsSkipped: 0 }));
+        mountMenu({ canvas, sources: [{ ...clirenerGold, classicHash: pinned, load: loads }], cache: new DatasetCache(memoryStore()), onStart: () => {}, leaderboard: lb });
+        button('Leaderboards')!.click();
+        button('Classic leaderboard')!.click();
+        await until(() => document.querySelector('.nt-modal .nt-table') !== null);
+        expect(be.state.requests.at(-1)).toContain(`/boards/${boardKey(classic)}`);
+        expect(document.querySelector('.nt-modal')!.textContent).toContain('Classic: CliReNER Gold');
+        expect(document.querySelector('.is-you')!.textContent).toContain('Ada (you)');
+        expect(loads).not.toHaveBeenCalled();
+    });
+
+    it('the Classic leaderboard is off for a dataset without a pinned hash', async () => {
+        const be = await createBackend();
+        mount(be.newLeaderboard('Ada'));
+        expect(button('Classic leaderboard')!.disabled).toBe(true);
     });
 
     it('Escape closes the board', async () => {

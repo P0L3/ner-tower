@@ -1,6 +1,7 @@
 import { Leaderboard } from './service';
 import { LeaderboardClient } from './client';
 import { Outbox } from './outbox';
+import { BestScores } from './bests';
 import { PlayerStore, type SyncStorage } from './player';
 import { handleRequest, type Env } from '../../worker/src/handler';
 import { createTestDb } from '../../worker/src/d1.testutil';
@@ -20,7 +21,7 @@ export async function createBackend() {
         const storage: SyncStorage = { getItem: k => m.get(k) ?? null, setItem: (k, v) => { m.set(k, v); } };
         const player = new PlayerStore(storage);
         if (nickname) player.setNickname(nickname);
-        return new Leaderboard(new LeaderboardClient('https://lb.test', { fetch: fetchImpl }), player, new Outbox(storage));
+        return new Leaderboard(new LeaderboardClient('https://lb.test', { fetch: fetchImpl }), player, new Outbox(storage), new BestScores(storage));
     };
     return { state, newLeaderboard, posts: () => state.requests.filter(r => r.startsWith('POST')) };
 }

@@ -44,6 +44,12 @@ export interface DatasetSource {
     version: string;
     /** Label colors; labels not listed get generated colors. */
     palette?: Readonly<Record<string, number>>;
+    /**
+     * First 16 hex chars of the content hash the Classic challenge was created for (see config/classic.ts).
+     * Without it there is no Classic challenge for this dataset; a loaded dataset with another hash pauses it.
+     * Get the value with `npm run classic:pin`.
+     */
+    classicHash?: string;
     /** Sentence count the authors report. Only used by the live smoke test to notice drift. */
     expectedRows?: number;
     load(options?: LoadOptions): Promise<LoadedSource>;

@@ -9,6 +9,7 @@ npm test           # unit tests (vitest)
 npm run build      # type-check + single-file build in dist/
 npm run analyze -- path/to/data.json   # dataset health report
 npm run music      # listening booth for the background music (no game)
+npm run classic:pin   # content hash + tower check for each dataset's Classic challenge (needs network)
 npm run test:live  # smoke test against the real Hugging Face API (needs network)
 ```
 
@@ -54,7 +55,9 @@ export const mySource = hfBioSource({
 });
 ```
 
-Then add it to `SOURCES` in `src/data/sources/index.ts` and run `npm run test:live`. It checks that
+Then add it to `SOURCES` in `src/data/sources/index.ts` and run `npm run test:live`. To give it a Classic
+challenge, run `npm run classic:pin` and paste the printed `classicHash` into the source file (see
+[docs/BOARDS.md](docs/BOARDS.md)); without it the dataset simply has no Classic board. It checks that
 the viewer answers with a CORS header, that the layout decodes, and that the row count matches.
 
 A dataset with another layout (for example span annotations instead of BIO tags) needs its own

@@ -104,6 +104,10 @@ describe('source registry', () => {
         for (const s of HUB_SOURCES) expect(s.url).toBe(`https://huggingface.co/datasets/${repoOf(s)}`);
     });
 
+    it('a pinned Classic hash is 16 lowercase hex characters', () => {
+        for (const s of SOURCES) if (s.classicHash !== undefined) expect(s.classicHash).toMatch(/^[0-9a-f]{16}$/);
+    });
+
     it('lists the built-in demo last, so a Hub dataset stays the default', () => {
         expect(SOURCES.at(-1)).toBe(demo);
         expect(HUB_SOURCES).toEqual(SOURCES.slice(0, -1));
