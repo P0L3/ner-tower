@@ -8,11 +8,11 @@
  * CORS header a browser needs (the single-file build runs from a page or from file://).
  */
 import { describe, it, expect } from 'vitest';
-import { SOURCES, type LoadProgress } from './index';
+import { HUB_SOURCES, type LoadProgress } from './index';
 import { HF_DATASETS_SERVER } from '../hf/datasetsServer';
 import { CLIRENER_TYPES } from '../hf/fakeServer.testutil';
 
-describe.each(SOURCES.map(s => [s.id, s] as const))('live: %s', (_id, source) => {
+describe.each(HUB_SOURCES.map(s => [s.id, s] as const))('live: %s', (_id, source) => {
     const repo = source.datasetId;
 
     it('sends a CORS header that allows browsers (including file:// pages, whose origin is "null")', async () => {

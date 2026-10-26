@@ -168,12 +168,12 @@ worker/                    # Cloudflare Worker + D1 schema
 
 ### M7 — Open-source polish
 - [x] Rewrite README (remove personal roadmap notes; document datasets, share codes, weekly challenge, leaderboard setup)
-- [ ] `LICENSE`
-- [ ] `.gitignore` incl. `public/assets/player/*`
+- [x] `LICENSE` (MIT; the copyright line says "NER Tower contributors": put your name there if you prefer)
+- [x] `.gitignore` incl. `public/assets/player/*`
 - [x] `CONTRIBUTING.md`: how to add a dataset source, ruleset-version rule
-- [ ] GitHub Actions: build + test; deploy to Pages (or static HF Space)
-- [ ] Tiny sample dataset in the repo for first-run demo
-- [ ] Dataset license/attribution shown in the picker
+- [x] GitHub Actions: build + test (`ci.yml`); deploy to Pages (`deploy.yml`; enable Pages > Source: GitHub Actions once)
+- [x] Tiny sample dataset in the repo for first-run demo (built-in `Demo` source, offline)
+- [x] Dataset license/attribution shown in the picker (license text and source link on every card)
 
 ---
 

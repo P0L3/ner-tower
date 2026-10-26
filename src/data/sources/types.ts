@@ -38,7 +38,7 @@ export interface DatasetSource {
     title: string;
     description: string;
     license: string;
-    /** Where the data lives, for attribution. */
+    /** Where the data lives, for attribution. Empty for data bundled with the game (no link is shown). */
     url: string;
     /** Version of the upstream dataset as named by its authors. */
     version: string;

@@ -76,7 +76,7 @@ export function mountMenu(opts: MenuOptions): MenuHandle {
             h('div', { class: 'nt-card-meta' },
                 h('span', { textContent: sizeLabel(src) }),
                 h('span', { textContent: `License ${src.license}` }),
-                h('a', { href: src.url, target: '_blank', rel: 'noopener noreferrer', textContent: 'Source' }),
+                ...(src.url ? [h('a', { href: src.url, target: '_blank', rel: 'noopener noreferrer', textContent: 'Source' })] : []),
                 badge));
         card.setAttribute('role', 'radio');
         card.tabIndex = 0;

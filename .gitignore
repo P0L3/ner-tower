@@ -1,12 +1,19 @@
-# Dependencies
-
+# dependencies and build output
 node_modules/
-
-# Build output
-
 dist/
 build/
 .vite/
+*.tsbuildinfo
+
+# LLM env
+nertower.txt
+codebase.txt
+
+# local configuration (copy .env.example if you have one)
+.env
+.env.local
+.env.*.local
+# .env.production holds the public leaderboard URL: commit it if you want builds to include it
 
 # Logs
 
@@ -16,38 +23,28 @@ yarn-error.log*
 pnpm-debug.log*
 *.log
 
-# OS files
-
-.DS_Store
-Thumbs.db
-
-# Environment variables
-
-.env
-.env.*
-
-# IDE / Editor
-
-.vscode/
-.idea/
 *.swp
 *.swo
 
-# TypeScript
+# Cloudflare Worker
+.wrangler/
+worker/node_modules/
+worker/.dev.vars
 
-*.tsbuildinfo
+# art that is not redistributable
+public/assets/player/*
 
-# Game data (DO NOT COMMIT REAL DATA)
+# editors, OS, logs
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+
+# Game data
 
 DATA_EXAMPLES/
-
-# Coverage (future)
-
 coverage/
-
-# Codebase Bundle
-nertower.txt
-codebase.txt
-
-# Data
 EXPORT

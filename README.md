@@ -40,6 +40,8 @@ to switch it off. Details: [docs/MUSIC.md](docs/MUSIC.md).
   | [CliReNER Gold](https://huggingface.co/datasets/P0L3/CliReNER_v_1_1_28_GOLD) | 192 | CC BY 4.0 |
   | [CliReNER Silver](https://huggingface.co/datasets/P0L3/CliReNER_v_1_1_28_SILVER) | 1,027 | CC BY 4.0 |
 
+- **Demo:** a built-in handful of sentences that plays instantly and offline, for a first taste.
+
 - **Your own file:** drop it on the menu. JSON, JSONL and CoNLL (IOB1/IOB2) are detected automatically,
   and problems are reported with line numbers.
 
@@ -99,3 +101,15 @@ Built with TypeScript, [Phaser 3](https://phaser.io), Vite and `vite-plugin-sing
 [ZzFX](https://github.com/KilledByAPixel/ZzFX) (MIT).
 
 Project layout and contribution rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Deploying
+
+Pushes to `main` run the tests and publish the single-file build to GitHub Pages (`.github/workflows/`).
+Enable it once under Settings > Pages > Source: GitHub Actions. To build with a leaderboard, add a repository
+variable `LEADERBOARD_URL` (Settings > Secrets and variables > Actions > Variables). The build is one HTML
+file, so it can also be hosted anywhere static, for example a static Hugging Face Space.
+
+## License
+
+The game is released under the [MIT License](LICENSE). Datasets keep their own licenses, shown in the
+menu next to each one (CliReNER: CC BY 4.0); ZzFX is MIT.

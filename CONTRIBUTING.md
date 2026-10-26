@@ -14,6 +14,8 @@ npm run test:live  # smoke test against the real Hugging Face API (needs network
 
 ## Before you open a PR
 
+CI runs `npm test` and `npm run build` on every push and pull request.
+
 - `npm test` and `npm run build` pass.
 - If `ruleset.lock.test.ts` fails, read **[docs/RULESET.md](docs/RULESET.md)**. Either revert, or
   bump the version on purpose, following that document.

@@ -6,7 +6,7 @@ A leaderboard board is **one exact configuration under one ruleset version**. No
 | Field | Meaning |
 |---|---|
 | `rulesetVersion` | `RULESET_VERSION` (see [RULESET.md](RULESET.md)) |
-| `datasetId` | Hugging Face repo name (`P0L3/CliReNER_v_1_1_28_SILVER`), or `local:file` for a dropped file |
+| `datasetId` | Hugging Face repo name (`P0L3/CliReNER_v_1_1_28_SILVER`), `ner-tower/demo` for the built-in demo, or `local:file` for a dropped file |
 | `contentHash` | first 16 hex chars of the canonical dataset's SHA-256, so changed data is a different board |
 | `seed` | integer 0..4294967295 |
 | `baseSpeed`, `speedInc`, `phaseDist` | the difficulty sliders; only values on the slider grid are valid (`SETTING_RANGES`) |

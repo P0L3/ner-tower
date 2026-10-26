@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { isValidDatasetId } from '../../config/settings';
-import { SOURCES, getSource, SourceLoadError, type LoadProgress } from './index';
+import { SOURCES, HUB_SOURCES, getSource, SourceLoadError, type LoadProgress } from './index';
+import { demo } from './demo';
 import { clirenerGold } from './clirener-gold';
 import { clirenerSilver } from './clirener-silver';
 import { CLIRENER_PALETTE } from './clirener-palette';
@@ -98,9 +99,14 @@ describe('source registry', () => {
         for (const s of SOURCES) {
             expect(isValidDatasetId(s.datasetId)).toBe(true);
             expect(s.datasetId).toContain('/');
-            expect(s.url).toBe(`https://huggingface.co/datasets/${repoOf(s)}`);
             for (const field of [s.title, s.description, s.license, s.version]) expect(field.trim()).not.toBe('');
         }
+        for (const s of HUB_SOURCES) expect(s.url).toBe(`https://huggingface.co/datasets/${repoOf(s)}`);
+    });
+
+    it('lists the built-in demo last, so a Hub dataset stays the default', () => {
+        expect(SOURCES.at(-1)).toBe(demo);
+        expect(HUB_SOURCES).toEqual(SOURCES.slice(0, -1));
     });
 
     it('looks sources up by id', () => {
