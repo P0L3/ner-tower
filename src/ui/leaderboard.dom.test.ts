@@ -284,7 +284,13 @@ describe('menu with a leaderboard', () => {
 
     it('the Classic leaderboard is off for a dataset without a pinned hash', async () => {
         const be = await createBackend();
-        mount(be.newLeaderboard('Ada'));
+        mountMenu({
+            canvas,
+            sources: [{ ...clirenerGold, classicHash: undefined, load: async () => ({ canonical, rowsRead: 40, rowsSkipped: 0 }) }],
+            cache: new DatasetCache(memoryStore()),
+            onStart: () => {},
+            leaderboard: be.newLeaderboard('Ada'),
+        });
         expect(button('Classic leaderboard')!.disabled).toBe(true);
     });
 
